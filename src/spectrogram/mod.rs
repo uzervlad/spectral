@@ -84,16 +84,23 @@ pub struct CachedSpectrogram {
 	pub texture: TextureHandle,
 	start_time: f64,
 	end_time: f64,
-	// fft_size: usize,
+	fft_size: usize,
 	width: usize,
 }
 
 impl CachedSpectrogram {
-	pub fn new(texture: TextureHandle, start_time: f64, end_time: f64, width: usize) -> Self {
+	pub fn new(
+		texture: TextureHandle,
+		start_time: f64,
+		end_time: f64,
+		fft_size: usize,
+		width: usize
+	) -> Self {
 		Self {
 			texture,
 			start_time,
 			end_time,
+			fft_size,
 			width
 		}
 	}
@@ -102,12 +109,12 @@ impl CachedSpectrogram {
 		&self,
 		start_time: f64,
 		end_time: f64,
-		// fft_size: usize,
+		fft_size: usize,
 		width: usize
 	) -> bool {
 		(self.start_time - start_time).abs() < 0.001
 			&& (self.end_time - end_time).abs() < 0.001
-			// && self.fft_size == fft_size
+			&& self.fft_size == fft_size
 			&& self.width == width
 	}
 }

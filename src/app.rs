@@ -15,6 +15,7 @@ pub struct SpectralApp {
 
 	spectrogram: Spectrogram,
 	cached_spectrogram: Option<CachedSpectrogram>,
+	fft_size: usize,
 
 	timeline: Timeline,
 	snap_divisor: i64,
@@ -33,6 +34,7 @@ impl SpectralApp {
 
 			spectrogram: Spectrogram::new(2048),
 			cached_spectrogram: None,
+			fft_size: 2048,
 
 			timeline: Timeline::new(),
 			snap_divisor: 4,
@@ -120,12 +122,14 @@ impl SpectralApp {
 		let (vis_start, vis_end) = self.timeline.visible_range(width as _);
 
 		if let Some(cached) = &self.cached_spectrogram {
-			if cached.is_valid(vis_start, vis_end, width) {
+			if cached.is_valid(vis_start, vis_end, self.fft_size, width) {
 				return Some(cached.texture.clone())
 			}
 		}
 
-		// TODO: handle fft size changed
+		if self.fft_size != self.spectrogram.fft_size {
+			self.spectrogram = Spectrogram::new(self.fft_size);
+		}
 
 		let columns = self.spectrogram.compute_range(audio, vis_start, vis_end, width, -80., 0.);
 
@@ -150,7 +154,7 @@ impl SpectralApp {
 
 		let texture = ctx.load_texture("spectrogram", image, egui::TextureOptions::LINEAR);
 
-		self.cached_spectrogram = Some(CachedSpectrogram::new(texture, vis_start, vis_end, width));
+		self.cached_spectrogram = Some(CachedSpectrogram::new(texture, vis_start, vis_end, self.fft_size, width));
 
 		Some(self.cached_spectrogram.as_ref().unwrap().texture.clone())
 	}
@@ -393,8 +397,6 @@ impl SpectralApp {
 					if let Some(pos) = mouse_pos {
 						let focus = self.timeline.x_to_ms(pos.x, rect);
 						self.timeline.zoom(scroll_delta.y as f64, focus, duration, rect.width());
-						
-						// TODO: change fft size
 					}
 				} else {
 					let scroll_speed = 1.0;
@@ -492,6 +494,18 @@ impl eframe::App for SpectralApp {
 				}
 
 				ui.label(format!("{:.0}%", volume * 100.));
+
+				ui.separator();
+
+				ui.label("FFT size");
+
+				egui::ComboBox::from_id_salt("fft_size")
+					.selected_text(format!("{}", self.fft_size))
+					.show_ui(ui, |ui| {
+						for &v in [512, 1024, 2048, 4096].iter() {
+							ui.selectable_value(&mut self.fft_size, v, format!("{}", v));
+						}
+					});
 
 				ui.separator();
 
