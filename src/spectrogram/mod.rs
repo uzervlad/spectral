@@ -85,6 +85,8 @@ pub struct CachedSpectrogram {
 	start_time: f64,
 	end_time: f64,
 	fft_size: usize,
+	min_db: f32,
+	max_db: f32,
 	width: usize,
 }
 
@@ -94,12 +96,16 @@ impl CachedSpectrogram {
 		start_time: f64,
 		end_time: f64,
 		fft_size: usize,
+		min_db: f32,
+		max_db: f32,
 		width: usize
 	) -> Self {
 		Self {
 			texture,
 			start_time,
 			end_time,
+			min_db,
+			max_db,
 			fft_size,
 			width
 		}
@@ -110,11 +116,15 @@ impl CachedSpectrogram {
 		start_time: f64,
 		end_time: f64,
 		fft_size: usize,
+		min_db: f32,
+		max_db: f32,
 		width: usize
 	) -> bool {
 		(self.start_time - start_time).abs() < 0.001
 			&& (self.end_time - end_time).abs() < 0.001
 			&& self.fft_size == fft_size
+			&& (self.min_db - min_db).abs() < 0.1
+			&& (self.max_db - max_db).abs() < 0.1
 			&& self.width == width
 	}
 }
