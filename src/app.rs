@@ -525,7 +525,20 @@ impl eframe::App for SpectralApp {
 						.separation_distance(5.)
 				);
 
-				ui.label(format!("{:.1}..{:.1}", self.min_db, self.max_db));
+				let db_label = ui.add(
+					egui::Label::new(format!("{:.1}..{:.1}", self.min_db, self.max_db))
+						.sense(egui::Sense::click())
+						.selectable(false)
+				);
+
+				if db_label.hovered() {
+					ui.output_mut(|o| o.cursor_icon = egui::CursorIcon::PointingHand);
+				}
+
+				if db_label.double_clicked() {
+					self.min_db = -80.;
+					self.max_db = 0.;
+				}
 
 				ui.separator();
 
