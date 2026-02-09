@@ -16,6 +16,4 @@
 ```bash
 $ cargo run --release
 ```
-
-<small>It is recommended to run in release mode, since spectrogram rendering is incredibly slow</small>
-
+<sub>It is recommended to run in release mode, since spectrogram rendering is incredibly slow</sub>
