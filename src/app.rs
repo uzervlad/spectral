@@ -409,7 +409,10 @@ impl SpectralApp {
 			}
 
 			self.hover_ms = mouse_pos.map(|p| self.timeline.x_to_ms(p.x, rect));
+		} else {
+			self.hover_ms = None;
 		}
+
 
 		if response.dragged_by(egui::PointerButton::Middle) {
 			let delta = response.drag_delta();
