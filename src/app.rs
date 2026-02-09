@@ -1,6 +1,6 @@
 use std::path::Path;
 
-use egui::{Color32, ColorImage, Pos2, Rect, Sense, Stroke, TextureHandle, Ui, Vec2};
+use egui::{Color32, ColorImage, FontId, Pos2, Rect, Sense, Stroke, TextFormat, TextureHandle, Ui, Vec2, text::LayoutJob};
 
 use crate::{audio::{AudioData, AudioPlayer}, export::{ExportFormat, export_timing_points}, spectrogram::{CachedSpectrogram, Spectrogram}, timing::{SnapDivision, TimingPoint}, util::{format_time, magma_colormap}, widgets::{time::TimeInput, timeline::Timeline}};
 
@@ -642,7 +642,7 @@ impl eframe::App for SpectralApp {
 
 			let ruler_height = 28.;
 			let freq_axis_width = 40.;
-			let timeline_height = ui.available_height().clamp(150., 600.);
+			let timeline_height = (ui.available_height() - 80.).clamp(150., 600.);
 
 			let ruler_rect = Rect::from_min_size(
 				Pos2::new(available.left() + freq_axis_width, available.top()),
@@ -666,6 +666,49 @@ impl eframe::App for SpectralApp {
 
 			self.draw_timeline(ui, timeline_rect);
 
+			let font = FontId::proportional(12.);
+			let highlight = Color32::from_rgb(50, 170, 255);
+			let mut job = LayoutJob::default();
+
+			macro_rules! add_text {
+				($text:literal) => {
+					job.append($text, 0., TextFormat { font_id: font.clone(), ..Default::default() });
+				};
+				($text:literal, true) => {
+					job.append($text, 0., TextFormat {
+						font_id: font.clone(),
+						color: highlight,
+						..Default::default()
+					});
+				};
+				($(($text:literal $(, $hl:tt)?)),+$(,)?) => {
+					$(
+						add_text!($text $(, $hl)?);
+					)+
+				};
+			}
+
+			add_text!(
+				("Scroll", true),
+				(" or "),
+				("drag with Mouse Wheel", true),
+				(" to move the timeline\n"),
+
+				("Alt+Scroll", true),
+				(" to zoom in/out\n"),
+
+				("Click", true),
+				(" to start a new timing section. "),
+				("Click again", true),
+				(" to select the next beat.\n"),
+
+				("Right Click", true),
+				(" to seek"),
+			);
+
+			ui.add(egui::Label::new(job).selectable(false));
+
+			/* Uncomment to show egui settings, including styling */
 			// egui::ScrollArea::vertical().show(ui, |ui| {
 			// 	ctx.settings_ui(ui);
 			// })
