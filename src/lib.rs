@@ -1,5 +1,6 @@
 pub mod app;
 pub mod audio;
+pub mod events;
 pub mod timing;
 pub mod util;
 

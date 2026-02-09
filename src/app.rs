@@ -1,8 +1,8 @@
-use std::path::Path;
+use std::{path::Path, sync::mpsc::{self, Receiver, Sender}, thread};
 
 use egui::{Color32, ColorImage, FontId, Pos2, Rect, Sense, Stroke, TextFormat, TextureHandle, Ui, Vec2, text::LayoutJob};
 
-use crate::{audio::{AudioData, AudioPlayer}, export::{ExportFormat, export_timing_points}, spectrogram::{CachedSpectrogram, Spectrogram}, timing::{SnapDivision, TimingPoint}, util::{format_time, magma_colormap}, widgets::{time::TimeInput, timeline::Timeline}};
+use crate::{audio::{AudioData, AudioPlayer}, events::SpectralEvent, export::{ExportFormat, export_timing_points}, spectrogram::{CachedSpectrogram, Spectrogram}, timing::{SnapDivision, TimingPoint}, util::{format_time, magma_colormap}, widgets::{time::TimeInput, timeline::Timeline}};
 
 enum TimingMode {
 	Idle,
@@ -12,6 +12,9 @@ enum TimingMode {
 pub struct SpectralApp {
 	audio_data: Option<AudioData>,
 	audio_player: AudioPlayer,
+
+	event_rx: Receiver<SpectralEvent>,
+	event_tx: Sender<SpectralEvent>,
 
 	spectrogram: Spectrogram,
 	cached_spectrogram: Option<CachedSpectrogram>,
@@ -30,9 +33,14 @@ pub struct SpectralApp {
 
 impl SpectralApp {
 	pub fn new() -> Self {
+		let (event_tx, event_rx) = mpsc::channel();
+
 		Self {
 			audio_data: None,
 			audio_player: AudioPlayer::new().expect("penis"),
+
+			event_rx,
+			event_tx,
 
 			spectrogram: Spectrogram::new(2048),
 			cached_spectrogram: None,
@@ -53,7 +61,17 @@ impl SpectralApp {
 		}
 	}
 
+	fn handle_event(&mut self, event: SpectralEvent) {
+		match event {
+			SpectralEvent::OpenAudio { path } => {
+				self.load_audio(path);
+			}
+		}
+	}
+
 	fn load_audio<P: AsRef<Path>>(&mut self, path: P) {
+		self.audio_player.pause();
+
 		match AudioData::load_from_file(path) {
 			Ok(data) => {
 				let _ = self.audio_player.load(&data);	
@@ -67,6 +85,18 @@ impl SpectralApp {
 				eprintln!("fuck {}", e);
 			}
 		}
+	}
+
+	fn request_open_audio(&self) {
+		let tx = self.event_tx.clone();
+		thread::spawn(move || {
+			if let Some(path) = rfd::FileDialog::new()
+				.add_filter("Audio", &["mp3", "ogg", "flac", "wav"])
+				.pick_file()
+			{
+				let _ = tx.send(SpectralEvent::OpenAudio { path });
+			}
+		});
 	}
 
 	fn sort_timing_points(&mut self) {
@@ -456,6 +486,10 @@ impl SpectralApp {
 
 impl eframe::App for SpectralApp {
 	fn update(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
+		while let Ok(event) = self.event_rx.try_recv() {
+			self.handle_event(event);
+		}
+
 		if ctx.input(|i| i.key_pressed(egui::Key::Space)) {
 			self.audio_player.play_pause();
 		}
@@ -472,13 +506,7 @@ impl eframe::App for SpectralApp {
 		egui::TopBottomPanel::top("top").show(ctx, |ui| {
 			ui.horizontal(|ui| {
 				if ui.button("Open audio").clicked() {
-					if let Some(path) = rfd::FileDialog::new()
-						.add_filter("Audio", &["mp3", "ogg", "flac", "wav"])
-						.pick_file()
-					{
-						self.audio_player.pause();
-						self.load_audio(path);
-					}
+					self.request_open_audio();
 				}
 
 				ui.separator();
@@ -563,7 +591,7 @@ impl eframe::App for SpectralApp {
 
 					for &fmt in ExportFormat::list() {
 						if ui.button(format!("{}", fmt)).clicked() {
-							let _ = export_timing_points(&self.timing_points, fmt);
+							export_timing_points(self.timing_points.clone(), fmt);
 							ui.close();
 						}
 					}

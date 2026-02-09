@@ -1,5 +1,6 @@
 use std::fmt::Display;
 use std::fs::File;
+use std::thread;
 
 use eyre::Result;
 use rfd::FileDialog;
@@ -47,15 +48,15 @@ impl ExportFormat {
 	}
 }
 
-pub fn export_timing_points(timing_points: &[TimingPoint], fmt: ExportFormat) -> Result<()> {
-	if let Some(path) = FileDialog::new()
-		.apply_format(fmt)
-		.save_file()
-	{
-		let file = File::create(path)?;
+pub fn export_timing_points(timing_points: Vec<TimingPoint>, fmt: ExportFormat) {
+	thread::spawn(move || {
+		if let Some(path) = FileDialog::new()
+			.apply_format(fmt)
+			.save_file()
+		{
+			let file = File::create(path).unwrap();
 
-		fmt.run(file, timing_points)?;
-	}
-
-	Ok(())
+			let _ = fmt.run(file, &timing_points);
+		}
+	});
 }
