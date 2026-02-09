@@ -41,7 +41,7 @@ pub enum SnapDivision {
 
 impl SnapDivision {
 	pub fn color(&self) -> Color32 {
-		match self {
+		let color = match self {
 			Self::Downbeat | Self::Beat => Color32::from_gray(230),
 			Self::Half => Color32::RED,
 			Self::Third => Color32::PURPLE,
@@ -51,7 +51,11 @@ impl SnapDivision {
 			Self::Twelfth => Color32::ORANGE,
 			Self::Sixteenth => Color32::PURPLE,
 			_ => Color32::from_rgb(179, 217, 68),
-		}
+		};
+
+		let (r, g, b, _) = color.to_tuple();
+
+		Color32::from_rgba_unmultiplied(r, g, b, 160)
 	}
 
 	pub fn height(&self) -> f32 {
