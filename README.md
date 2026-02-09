@@ -7,6 +7,12 @@
 
 > Goals for 1.0 release can be found [here](/TODO.md)
 
+<details>
+<summary>Screenshots</summary>
+
+![](/assets/screenshot.jpg)
+</details>
+
 ### How to run
 
 #### Prerequisites
