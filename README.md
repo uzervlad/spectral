@@ -5,6 +5,8 @@
 > [!WARNING]
 > The project is in its early stages, expect breakage and very rough UX
 
+> Goals for 1.0 release can be found [here](/TODO.md)
+
 ### How to run
 
 #### Prerequisites
@@ -16,3 +18,4 @@ $ cargo run --release
 ```
 
 <small>It is recommended to run in release mode, since spectrogram rendering is incredibly slow</small>
+
