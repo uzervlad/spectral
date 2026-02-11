@@ -26,6 +26,9 @@ pub struct SpectralApp {
 	snap_divisor: i64,
 	hover_ms: Option<f64>,
 
+	snap_to_tick: bool,
+	snap_ms: Option<f64>,
+
 	timing_mode: TimingMode,
 
 	timing_points: Vec<TimingPoint>,
@@ -51,6 +54,9 @@ impl SpectralApp {
 			timeline: Timeline::new(),
 			snap_divisor: 4,
 			hover_ms: None,
+
+			snap_to_tick: false,
+			snap_ms: None,
 
 			timing_mode: TimingMode::Idle,
 
@@ -313,7 +319,9 @@ impl SpectralApp {
 	}
 
 	fn draw_cursor(&mut self, ui: &mut Ui, rect: Rect) {
-		if let Some(ms) = self.hover_ms {
+		let ms = if self.snap_to_tick { self.snap_ms } else { self.hover_ms };
+
+		if let Some(ms) = ms {
 			let x = self.timeline.ms_to_x(ms, rect);
 
 			ui.painter_at(rect).line_segment(
@@ -396,14 +404,32 @@ impl SpectralApp {
 		}
 	}
 
-	fn draw_beat_ticks(&self, ui: &mut Ui, rect: Rect) {
+	fn draw_beat_ticks(&mut self, ui: &mut Ui, rect: Rect) {
 		let (start, end) = self.timeline.visible_range(rect.width());
 		let ticks = self.get_beat_ticks(start, end);
+
+		let mouse_x = ui.input(|i| i.pointer.hover_pos()).map(|p| p.x);
+
+		if self.snap_to_tick {
+			self.snap_ms = None;
+		}
+
+		let mut closest_dist = f32::MAX;
 
 		for (tick_ms, snap) in ticks {
 			let x = self.timeline.ms_to_x(tick_ms, rect);
 
 			if x >= rect.left() && x <= rect.right() {
+				if self.snap_to_tick {
+					if let Some(mx) = mouse_x {
+						let dist = (x - mx).abs();
+						if dist < closest_dist {
+							closest_dist = dist;
+							self.snap_ms = Some(tick_ms);
+						}
+					}
+				}
+
 				let height = snap.height() * rect.height();
 
 				ui.painter_at(rect).line_segment(
@@ -443,16 +469,15 @@ impl SpectralApp {
 			self.hover_ms = None;
 		}
 
-
 		if response.dragged_by(egui::PointerButton::Middle) {
 			let delta = response.drag_delta();
 			self.timeline.scroll(-delta.x as f64, duration, rect.width());
 		}
 
 		if response.clicked() {
-			if let Some(pos) = response.interact_pointer_pos() {
-				let click_ms = self.timeline.x_to_ms(pos.x, rect).clamp(0., duration);
+			let ms = if self.snap_to_tick { self.snap_ms } else { self.hover_ms };
 
+			if let Some(click_ms) = ms {
 				match self.timing_mode {
 					TimingMode::Idle => {
 						self.timing_mode = TimingMode::SelectedStart { start: click_ms };
@@ -475,9 +500,9 @@ impl SpectralApp {
 		}
 
 		if response.secondary_clicked() {
-			if let Some(pos) = response.interact_pointer_pos() {
-				let click_ms = self.timeline.x_to_ms(pos.x, rect).clamp(0., duration);
+			let ms = if self.snap_to_tick { self.snap_ms } else { self.hover_ms };
 
+			if let Some(click_ms) = ms {
 				self.audio_player.seek_to(click_ms);
 			}
 		}
@@ -497,11 +522,13 @@ impl eframe::App for SpectralApp {
 		if ctx.input(|i| i.key_pressed(egui::Key::Escape)) {
 			self.timing_mode = TimingMode::Idle;
 		}
-		
+
 		if self.audio_player.is_playing() {
 			ctx.request_repaint();
 		}
-		
+
+		self.snap_to_tick = ctx.input(|i| i.modifiers.shift_only());
+
 		/* Top panel */
 		egui::TopBottomPanel::top("top").show(ctx, |ui| {
 			ui.horizontal(|ui| {
