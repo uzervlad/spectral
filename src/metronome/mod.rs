@@ -1,8 +1,14 @@
-use std::{sync::{Arc, RwLock, atomic::{AtomicBool, AtomicU16, AtomicU32, AtomicUsize, Ordering}}, thread, time::Duration};
+use std::sync::atomic::{AtomicBool, AtomicU16, AtomicU32, AtomicUsize, Ordering};
+use std::sync::{Arc, RwLock};
+use std::thread;
+use std::time::Duration;
 
-use rodio::{Sink, buffer::SamplesBuffer};
+use rodio::Sink;
+use rodio::buffer::SamplesBuffer;
 
-use crate::{audio::AudioPlayer, metronome::samples::MetronomeSamples, timing::TimingPoint};
+use crate::audio::AudioPlayer;
+use crate::metronome::samples::MetronomeSamples;
+use crate::timing::TimingPoint;
 
 mod samples;
 
@@ -16,7 +22,9 @@ fn check_metronome(
 	current: f64,
 	timing_points: &[TimingPoint],
 ) -> Option<ClickType> {
-	if timing_points.is_empty() { return None }
+	if timing_points.is_empty() {
+		return None;
+	}
 
 	let tp_idx = timing_points
 		.iter()
@@ -31,7 +39,7 @@ fn check_metronome(
 
 	if current_beat > previous_beat && current >= tp.offset {
 		let ticks_per_measure = tp.signature.0 as i64;
-		
+
 		let is_downbeat = current_beat % ticks_per_measure == 0;
 
 		Some(if is_downbeat {
@@ -59,7 +67,9 @@ pub fn metronome_thread(
 		if state.is_playing() {
 			playhead_ms = state.get_position_ms();
 
-			if let Some(click) = check_metronome(previous_ms, playhead_ms, &timing_points.read().unwrap()) {
+			if let Some(click) =
+				check_metronome(previous_ms, playhead_ms, &timing_points.read().unwrap())
+			{
 				let (samples, sample_rate, channels) = samples.get_sample(click);
 
 				let source = SamplesBuffer::new(channels, sample_rate, samples.as_ref().clone());

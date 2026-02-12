@@ -86,31 +86,31 @@ impl SnapDivision {
 	pub fn from_tick(in_beat: i64, divisor: i64, in_measure: i64) -> Self {
 		if in_beat == 0 {
 			if in_measure == 0 {
-				return Self::Downbeat
+				return Self::Downbeat;
 			}
-			return Self::Beat
+			return Self::Beat;
 		}
 
 		if (in_beat * 2) % divisor == 0 {
-			return Self::Half
+			return Self::Half;
 		}
 		if (in_beat * 3) % divisor == 0 {
-			return Self::Third
+			return Self::Third;
 		}
 		if (in_beat * 4) % divisor == 0 {
-			return Self::Quarter
+			return Self::Quarter;
 		}
 		if (in_beat * 6) % divisor == 0 {
-			return Self::Sixth
+			return Self::Sixth;
 		}
 		if (in_beat * 8) % divisor == 0 {
-			return Self::Eighth
+			return Self::Eighth;
 		}
 		if (in_beat * 12) % divisor == 0 {
-			return Self::Twelfth
+			return Self::Twelfth;
 		}
 		if (in_beat * 16) % divisor == 0 {
-			return Self::Sixteenth
+			return Self::Sixteenth;
 		}
 		Self::Other
 	}

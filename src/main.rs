@@ -8,5 +8,9 @@ fn main() -> eframe::Result {
 		..Default::default()
 	};
 
-	eframe::run_native("Spectral", options, Box::new(|_| Ok(Box::new(SpectralApp::new()))))
+	eframe::run_native(
+		"Spectral",
+		options,
+		Box::new(|_| Ok(Box::new(SpectralApp::new()))),
+	)
 }

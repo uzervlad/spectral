@@ -28,32 +28,31 @@ impl ApplyExportFormat for FileDialog {
 
 impl Display for ExportFormat {
 	fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-		write!(f, "{}", match self {
-			ExportFormat::Osu => "osu! (.osu)",
-		})
+		write!(
+			f,
+			"{}",
+			match self {
+				ExportFormat::Osu => "osu! (.osu)",
+			}
+		)
 	}
 }
 
 impl ExportFormat {
 	pub fn list() -> &'static [Self] {
-		&[
-			ExportFormat::Osu,
-		]
+		&[ExportFormat::Osu]
 	}
 
 	fn run(self, file: File, timing_points: &[TimingPoint]) -> Result<()> {
 		match self {
-			Self::Osu => osu::export(file, timing_points)
+			Self::Osu => osu::export(file, timing_points),
 		}
 	}
 }
 
 pub fn export_timing_points(timing_points: Vec<TimingPoint>, fmt: ExportFormat) {
 	thread::spawn(move || {
-		if let Some(path) = FileDialog::new()
-			.apply_format(fmt)
-			.save_file()
-		{
+		if let Some(path) = FileDialog::new().apply_format(fmt).save_file() {
 			let file = File::create(path).unwrap();
 
 			let _ = fmt.run(file, &timing_points);

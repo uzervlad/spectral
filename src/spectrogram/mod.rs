@@ -1,7 +1,8 @@
 use std::f32::consts::PI;
 
 use egui::TextureHandle;
-use rustfft::{FftPlanner, num_complex::Complex};
+use rustfft::FftPlanner;
+use rustfft::num_complex::Complex;
 
 use crate::audio::AudioData;
 
@@ -29,7 +30,7 @@ impl Spectrogram {
 		data: &AudioData,
 		center_sample: isize,
 		min_db: f32,
-		max_db: f32
+		max_db: f32,
 	) -> Vec<f32> {
 		let fft = self.planner.plan_fft_forward(self.fft_size);
 		let half = (self.fft_size / 2) as isize;
@@ -98,7 +99,7 @@ impl CachedSpectrogram {
 		fft_size: usize,
 		min_db: f32,
 		max_db: f32,
-		width: usize
+		width: usize,
 	) -> Self {
 		Self {
 			texture,
@@ -107,7 +108,7 @@ impl CachedSpectrogram {
 			min_db,
 			max_db,
 			fft_size,
-			width
+			width,
 		}
 	}
 
@@ -118,7 +119,7 @@ impl CachedSpectrogram {
 		fft_size: usize,
 		min_db: f32,
 		max_db: f32,
-		width: usize
+		width: usize,
 	) -> bool {
 		(self.start_time - start_time).abs() < 0.001
 			&& (self.end_time - end_time).abs() < 0.001

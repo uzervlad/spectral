@@ -1,0 +1,5 @@
+hard_tabs = true
+group_imports = "StdExternalCrate"
+newline_style = "Unix"
+match_block_trailing_comma = true
+imports_granularity = "Module"

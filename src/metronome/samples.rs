@@ -1,4 +1,5 @@
-use std::{io::{BufReader, Cursor}, sync::Arc};
+use std::io::{BufReader, Cursor};
+use std::sync::Arc;
 
 use eyre::Result;
 use rodio::{Decoder, Source as _};
@@ -24,7 +25,7 @@ impl MetronomeSamples {
 			downbeat: Arc::new(downbeat),
 			beat: Arc::new(beat),
 			sample_rate,
-			channels
+			channels,
 		})
 	}
 

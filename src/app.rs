@@ -1,8 +1,22 @@
-use std::{path::Path, sync::{Arc, RwLock, mpsc::{self, Receiver, Sender}}, thread::{self, JoinHandle}};
+use std::path::Path;
+use std::sync::mpsc::{self, Receiver, Sender};
+use std::sync::{Arc, RwLock};
+use std::thread::{self, JoinHandle};
 
-use egui::{Color32, ColorImage, FontId, Pos2, Rect, Sense, Stroke, TextFormat, TextureHandle, Ui, Vec2, text::LayoutJob};
+use egui::text::LayoutJob;
+use egui::{
+	Color32, ColorImage, FontId, Pos2, Rect, Sense, Stroke, TextFormat, TextureHandle, Ui, Vec2,
+};
 
-use crate::{audio::{AudioData, AudioPlayer}, events::SpectralEvent, export::{ExportFormat, export_timing_points}, metronome::{MetronomeState, metronome_thread}, spectrogram::{CachedSpectrogram, Spectrogram}, timing::{SnapDivision, TimingPoint}, util::{format_time, magma_colormap}, widgets::{time::TimeInput, timeline::Timeline}};
+use crate::audio::{AudioData, AudioPlayer};
+use crate::events::SpectralEvent;
+use crate::export::{ExportFormat, export_timing_points};
+use crate::metronome::{MetronomeState, metronome_thread};
+use crate::spectrogram::{CachedSpectrogram, Spectrogram};
+use crate::timing::{SnapDivision, TimingPoint};
+use crate::util::{format_time, magma_colormap};
+use crate::widgets::time::TimeInput;
+use crate::widgets::timeline::Timeline;
 
 enum TimingMode {
 	Idle,
@@ -83,7 +97,7 @@ impl SpectralApp {
 		match event {
 			SpectralEvent::OpenAudio { path } => {
 				self.load_audio(path);
-			}
+			},
 		}
 	}
 
@@ -92,7 +106,7 @@ impl SpectralApp {
 
 		match AudioData::load_from_file(path) {
 			Ok(data) => {
-				let _ = self.audio_player.load(&data);	
+				let _ = self.audio_player.load(&data);
 
 				self.audio_data = Some(data);
 				self.cached_spectrogram = None;
@@ -101,7 +115,7 @@ impl SpectralApp {
 			},
 			Err(e) => {
 				eprintln!("fuck {}", e);
-			}
+			},
 		}
 	}
 
@@ -118,7 +132,10 @@ impl SpectralApp {
 	}
 
 	fn sort_timing_points(&mut self) {
-		self.timing_points.write().unwrap().sort_by(|a, b| a.offset.partial_cmp(&b.offset).unwrap());
+		self.timing_points
+			.write()
+			.unwrap()
+			.sort_by(|a, b| a.offset.partial_cmp(&b.offset).unwrap());
 	}
 
 	fn get_beat_ticks(&self, start: f64, end: f64) -> Vec<(f64, SnapDivision)> {
@@ -144,7 +161,9 @@ impl SpectralApp {
 			let tick_start = start.max(tp.offset);
 			let tick_end = end.min(section_end);
 
-			if tick_start >= tick_end { continue; }
+			if tick_start >= tick_end {
+				continue;
+			}
 
 			let beats_from_start = ((tick_start - tp.offset) / ms_per_tick).floor() as i64;
 			let first_tick_ms = tp.offset + (beats_from_start as f64 * ms_per_tick);
@@ -170,14 +189,26 @@ impl SpectralApp {
 		ticks
 	}
 
-	fn generate_spectrogram(&mut self, ctx: &egui::Context, width: usize, height: usize) -> Option<TextureHandle> {
+	fn generate_spectrogram(
+		&mut self,
+		ctx: &egui::Context,
+		width: usize,
+		height: usize,
+	) -> Option<TextureHandle> {
 		let audio = self.audio_data.as_ref()?;
 
 		let (vis_start, vis_end) = self.timeline.visible_range(width as _);
 
 		if let Some(cached) = &self.cached_spectrogram {
-			if cached.is_valid(vis_start, vis_end, self.fft_size, self.min_db, self.max_db, width) {
-				return Some(cached.texture.clone())
+			if cached.is_valid(
+				vis_start,
+				vis_end,
+				self.fft_size,
+				self.min_db,
+				self.max_db,
+				width,
+			) {
+				return Some(cached.texture.clone());
 			}
 		}
 
@@ -185,7 +216,14 @@ impl SpectralApp {
 			self.spectrogram = Spectrogram::new(self.fft_size);
 		}
 
-		let columns = self.spectrogram.compute_range(audio, vis_start, vis_end, width, self.min_db, self.max_db);
+		let columns = self.spectrogram.compute_range(
+			audio,
+			vis_start,
+			vis_end,
+			width,
+			self.min_db,
+			self.max_db,
+		);
 
 		let freq_bins = self.spectrogram.fft_size / 2;
 
@@ -208,7 +246,15 @@ impl SpectralApp {
 
 		let texture = ctx.load_texture("spectrogram", image, egui::TextureOptions::LINEAR);
 
-		self.cached_spectrogram = Some(CachedSpectrogram::new(texture, vis_start, vis_end, self.fft_size, self.min_db, self.max_db, width));
+		self.cached_spectrogram = Some(CachedSpectrogram::new(
+			texture,
+			vis_start,
+			vis_end,
+			self.fft_size,
+			self.min_db,
+			self.max_db,
+			width,
+		));
 
 		Some(self.cached_spectrogram.as_ref().unwrap().texture.clone())
 	}
@@ -229,11 +275,13 @@ impl SpectralApp {
 		let vis_duration = vis_end - vis_start;
 		let target_ticks = (rect.width() / 100.) as f64;
 
-		let interval = [100., 200., 500., 1000., 2000., 5000., 10000., 15000., 30000., 60000.]
-			.iter()
-			.find(|&&i| vis_duration / i < target_ticks * 2.0)
-			.copied()
-			.unwrap_or(60000.);
+		let interval = [
+			100., 200., 500., 1000., 2000., 5000., 10000., 15000., 30000., 60000.,
+		]
+		.iter()
+		.find(|&&i| vis_duration / i < target_ticks * 2.0)
+		.copied()
+		.unwrap_or(60000.);
 
 		let start_tick = (vis_start / interval).floor() as i64;
 		let end_tick = (vis_end / interval).ceil() as i64;
@@ -244,10 +292,7 @@ impl SpectralApp {
 
 			if x >= rect.left() && x <= rect.right() {
 				painter.line_segment(
-					[
-						Pos2::new(x, rect.top()),
-						Pos2::new(x, rect.bottom()),
-					],
+					[Pos2::new(x, rect.top()), Pos2::new(x, rect.bottom())],
 					Stroke::new(1., Color32::from_gray(50)),
 				);
 
@@ -265,34 +310,33 @@ impl SpectralApp {
 
 	fn draw_frequency_axis(&self, ui: &mut Ui, rect: Rect) {
 		let painter = ui.painter_at(rect);
-		
+
 		painter.rect_filled(rect, 0., Color32::from_gray(27));
 
 		if let Some(data) = &self.audio_data {
 			let max_freq = data.sample_rate as f32 / 2.;
 
-			let freqs = [2000., 4000., 6000., 8000., 10000., 12000., 14000., 16000., 18000., 20000.]
-				.into_iter()
-				.filter(|&f| f <= max_freq);
+			let freqs = [
+				2000., 4000., 6000., 8000., 10000., 12000., 14000., 16000., 18000., 20000.,
+			]
+			.into_iter()
+			.filter(|&f| f <= max_freq);
 
 			for freq in freqs {
 				let y = rect.bottom() - (freq / max_freq) * rect.height();
 
 				if y >= rect.top() && y <= rect.bottom() {
 					painter.line_segment(
-						[
-							Pos2::new(rect.right() - 4.0, y),
-							Pos2::new(rect.right(), y),
-						],
+						[Pos2::new(rect.right() - 4.0, y), Pos2::new(rect.right(), y)],
 						Stroke::new(1., Color32::from_gray(100)),
 					);
-					
+
 					let label = if freq >= 1000. {
 						format!("{}k", (freq / 1000.) as u16)
 					} else {
 						format!("{}", freq as u16)
 					};
-					
+
 					painter.text(
 						Pos2::new(rect.center().x, y),
 						egui::Align2::CENTER_CENTER,
@@ -321,7 +365,9 @@ impl SpectralApp {
 
 		painter.rect_filled(rect, 0., Color32::from_gray(15));
 
-		if self.audio_data.is_none() { return }
+		if self.audio_data.is_none() {
+			return;
+		}
 
 		let width = (rect.width() as usize).max(100);
 		let height = (rect.height() as usize).max(100);
@@ -333,32 +379,32 @@ impl SpectralApp {
 	}
 
 	fn draw_cursor(&mut self, ui: &mut Ui, rect: Rect) {
-		let ms = if self.snap_to_tick { self.snap_ms } else { self.hover_ms };
+		let ms = if self.snap_to_tick {
+			self.snap_ms
+		} else {
+			self.hover_ms
+		};
 
 		if let Some(ms) = ms {
 			let x = self.timeline.ms_to_x(ms, rect);
 
 			ui.painter_at(rect).line_segment(
-				[
-					Pos2::new(x, rect.top()),
-					Pos2::new(x, rect.bottom()),
-				],
+				[Pos2::new(x, rect.top()), Pos2::new(x, rect.bottom())],
 				Stroke::new(1., Color32::from_gray(170)),
 			);
 		}
 	}
 
 	fn draw_playhead(&self, ui: &mut Ui, rect: Rect) {
-		let x = self.timeline.ms_to_x(self.audio_player.get_position_ms(), rect);
+		let x = self
+			.timeline
+			.ms_to_x(self.audio_player.get_position_ms(), rect);
 
 		let color = Color32::from_rgb(102, 255, 204);
 
 		if x >= rect.left() && x <= rect.right() {
 			ui.painter_at(rect).line_segment(
-				[
-					Pos2::new(x, rect.top()),
-					Pos2::new(x, rect.bottom()),
-				],
+				[Pos2::new(x, rect.top()), Pos2::new(x, rect.bottom())],
 				Stroke::new(2., color),
 			);
 
@@ -368,7 +414,8 @@ impl SpectralApp {
 				Pos2::new(x, rect.top() + 12.),
 			];
 
-			ui.painter_at(rect).add(egui::Shape::convex_polygon(tri, color, Stroke::NONE));
+			ui.painter_at(rect)
+				.add(egui::Shape::convex_polygon(tri, color, Stroke::NONE));
 		}
 	}
 
@@ -377,10 +424,7 @@ impl SpectralApp {
 			let x = self.timeline.ms_to_x(tp.offset, rect);
 			if x >= rect.left() && x <= rect.right() {
 				ui.painter_at(rect).line_segment(
-					[
-						Pos2::new(x, rect.top()),
-						Pos2::new(x, rect.bottom()),
-					],
+					[Pos2::new(x, rect.top()), Pos2::new(x, rect.bottom())],
 					Stroke::new(2., Color32::GOLD),
 				);
 
@@ -390,20 +434,21 @@ impl SpectralApp {
 					Pos2::new(x, rect.top() + 12.),
 				];
 
-				ui.painter_at(rect).add(egui::Shape::convex_polygon(tri, Color32::GOLD, Stroke::NONE));
+				ui.painter_at(rect).add(egui::Shape::convex_polygon(
+					tri,
+					Color32::GOLD,
+					Stroke::NONE,
+				));
 			}
 		}
-	
+
 		match self.timing_mode {
 			TimingMode::SelectedStart { start } => {
 				let x = self.timeline.ms_to_x(start, rect);
 
 				ui.painter_at(rect).line_segment(
-					[
-						Pos2::new(x, rect.top()),
-						Pos2::new(x, rect.bottom()),
-					],
-					Stroke::new(2., Color32::CYAN)
+					[Pos2::new(x, rect.top()), Pos2::new(x, rect.bottom())],
+					Stroke::new(2., Color32::CYAN),
 				);
 
 				ui.painter_at(rect).text(
@@ -414,7 +459,7 @@ impl SpectralApp {
 					Color32::CYAN,
 				);
 			},
-			TimingMode::Idle => {}
+			TimingMode::Idle => {},
 		}
 	}
 
@@ -451,14 +496,18 @@ impl SpectralApp {
 						Pos2::new(x, rect.bottom()),
 						Pos2::new(x, rect.bottom() - height),
 					],
-					Stroke::new(snap.width(), snap.color())
+					Stroke::new(snap.width(), snap.color()),
 				);
 			}
 		}
 	}
 
 	fn handle_timeline_input(&mut self, ui: &mut Ui, rect: Rect, response: &egui::Response) {
-		let duration = self.audio_data.as_ref().map(|data| data.duration).unwrap_or(0.);
+		let duration = self
+			.audio_data
+			.as_ref()
+			.map(|data| data.duration)
+			.unwrap_or(0.);
 
 		let mouse_pos = ui.input(|i| i.pointer.hover_pos());
 
@@ -470,11 +519,16 @@ impl SpectralApp {
 				if alt_held {
 					if let Some(pos) = mouse_pos {
 						let focus = self.timeline.x_to_ms(pos.x, rect);
-						self.timeline.zoom(scroll_delta.y as f64, focus, duration, rect.width());
+						self.timeline
+							.zoom(scroll_delta.y as f64, focus, duration, rect.width());
 					}
 				} else {
 					let scroll_speed = 1.0;
-					self.timeline.scroll(-scroll_delta.y as f64 * scroll_speed, duration, rect.width());
+					self.timeline.scroll(
+						-scroll_delta.y as f64 * scroll_speed,
+						duration,
+						rect.width(),
+					);
 				}
 			}
 
@@ -485,11 +539,16 @@ impl SpectralApp {
 
 		if response.dragged_by(egui::PointerButton::Middle) {
 			let delta = response.drag_delta();
-			self.timeline.scroll(-delta.x as f64, duration, rect.width());
+			self.timeline
+				.scroll(-delta.x as f64, duration, rect.width());
 		}
 
 		if response.clicked() {
-			let ms = if self.snap_to_tick { self.snap_ms } else { self.hover_ms };
+			let ms = if self.snap_to_tick {
+				self.snap_ms
+			} else {
+				self.hover_ms
+			};
 
 			if let Some(click_ms) = ms {
 				match self.timing_mode {
@@ -497,10 +556,11 @@ impl SpectralApp {
 						self.timing_mode = TimingMode::SelectedStart { start: click_ms };
 					},
 					TimingMode::SelectedStart { start } => {
-						let bpm = ({
+						let bpm = {
 							let delta = (click_ms - start).abs();
 							if delta > 0. { 60000. / delta } else { 120. }
-						} * 100.).round() / 100.;
+						};
+						let bpm = (bpm * 100.).round() / 100.;
 
 						let offset = start.min(click_ms);
 						let tp = TimingPoint::new(offset, bpm);
@@ -508,13 +568,17 @@ impl SpectralApp {
 						self.sort_timing_points();
 
 						self.timing_mode = TimingMode::Idle;
-					}
+					},
 				}
 			}
 		}
 
 		if response.secondary_clicked() {
-			let ms = if self.snap_to_tick { self.snap_ms } else { self.hover_ms };
+			let ms = if self.snap_to_tick {
+				self.snap_ms
+			} else {
+				self.hover_ms
+			};
 
 			if let Some(click_ms) = ms {
 				self.audio_player.seek_to(click_ms);
@@ -552,7 +616,14 @@ impl eframe::App for SpectralApp {
 
 				ui.separator();
 
-				if ui.button(if self.audio_player.is_playing() { "Pause" } else { "Play" }).clicked() {
+				if ui
+					.button(if self.audio_player.is_playing() {
+						"Pause"
+					} else {
+						"Play"
+					})
+					.clicked()
+				{
 					self.audio_player.play_pause();
 				}
 
@@ -561,11 +632,14 @@ impl eframe::App for SpectralApp {
 				ui.label("Volume:");
 
 				let mut volume = self.audio_player.get_volume();
-				if ui.add(
-					egui::Slider::new(&mut volume, 0.0..=1.0)
-						.show_value(false)
-						.fixed_decimals(2)
-				).changed() {
+				if ui
+					.add(
+						egui::Slider::new(&mut volume, 0.0..=1.0)
+							.show_value(false)
+							.fixed_decimals(2),
+					)
+					.changed()
+				{
 					self.audio_player.set_volume(volume);
 				}
 
@@ -576,11 +650,14 @@ impl eframe::App for SpectralApp {
 				ui.label("Metronome volume:");
 
 				let mut volume = self.audio_player.get_metronome_volume();
-				if ui.add(
-					egui::Slider::new(&mut volume, 0.0..=1.0)
-						.show_value(false)
-						.fixed_decimals(2)
-				).changed() {
+				if ui
+					.add(
+						egui::Slider::new(&mut volume, 0.0..=1.0)
+							.show_value(false)
+							.fixed_decimals(2),
+					)
+					.changed()
+				{
 					self.audio_player.set_metronome_volume(volume);
 				}
 
@@ -606,16 +683,16 @@ impl eframe::App for SpectralApp {
 					egui_double_slider::DoubleSlider::new(
 						&mut self.min_db,
 						&mut self.max_db,
-						-120.0..=0.0
+						-120.0..=0.0,
 					)
-						.width(150.)
-						.separation_distance(5.)
+					.width(150.)
+					.separation_distance(5.),
 				);
 
 				let db_label = ui.add(
 					egui::Label::new(format!("{:.1}..{:.1}", self.min_db, self.max_db))
 						.sense(egui::Sense::click())
-						.selectable(false)
+						.selectable(false),
 				);
 
 				if db_label.hovered() {
@@ -635,7 +712,7 @@ impl eframe::App for SpectralApp {
 					egui::Slider::new(&mut self.snap_divisor, 1..=16)
 						.show_value(false)
 						.max_decimals(0)
-						.step_by(1.)
+						.step_by(1.),
 				);
 
 				ui.label(format!("1 / {:.0}", self.snap_divisor));
@@ -666,7 +743,9 @@ impl eframe::App for SpectralApp {
 					let mut timing_point_delete = None;
 					let mut resort_timing_points = false;
 
-					for (i, timing_point) in self.timing_points.write().unwrap().iter_mut().enumerate() {
+					for (i, timing_point) in
+						self.timing_points.write().unwrap().iter_mut().enumerate()
+					{
 						// TODO: selection?
 						let frame = egui::Frame::new()
 							.fill(Color32::TRANSPARENT)
@@ -675,7 +754,7 @@ impl eframe::App for SpectralApp {
 						frame.show(ui, |ui| {
 							ui.vertical(|ui| {
 								ui.horizontal(|ui| {
-									ui.label(format!("#{}", i+1));
+									ui.label(format!("#{}", i + 1));
 
 									if ui.small_button("🗑").clicked() {
 										timing_point_delete = Some(i);
@@ -684,7 +763,8 @@ impl eframe::App for SpectralApp {
 									ui.label("@");
 
 									let id = timing_point.id();
-									resort_timing_points |= TimeInput::ui(ui, &mut timing_point.offset, id);
+									resort_timing_points |=
+										TimeInput::ui(ui, &mut timing_point.offset, id);
 								});
 
 								ui.horizontal(|ui| {
@@ -693,7 +773,7 @@ impl eframe::App for SpectralApp {
 										egui::DragValue::new(&mut timing_point.bpm)
 											.speed(0.01)
 											.range(1.0..=999.0)
-											.suffix("BPM")
+											.suffix("BPM"),
 									);
 								});
 
@@ -744,7 +824,10 @@ impl eframe::App for SpectralApp {
 			self.draw_frequency_axis(ui, freq_rect);
 
 			let timeline_rect = Rect::from_min_max(
-				Pos2::new(available.left() + freq_axis_width, available.top() + ruler_height),
+				Pos2::new(
+					available.left() + freq_axis_width,
+					available.top() + ruler_height,
+				),
 				Pos2::new(available.max.x, available.top() + timeline_height),
 			);
 
@@ -775,6 +858,7 @@ impl eframe::App for SpectralApp {
 				};
 			}
 
+			#[rustfmt::skip]
 			add_text!(
 				("Scroll", true),
 				(" or "),
@@ -789,7 +873,11 @@ impl eframe::App for SpectralApp {
 				("Click again", true),
 				(" to select the next beat, or press "),
 				("Escape", true),
-				(" to cancel.\n"),
+				(" to cancel\n"),
+
+				("Hold "),
+				("Shift", true),
+				(" to lock cursor onto visible ticks\n"),
 
 				("Right Click", true),
 				(" to seek"),

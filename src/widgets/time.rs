@@ -6,7 +6,9 @@ impl TimeInput {
 	pub fn ui(ui: &mut egui::Ui, time: &mut f64, id: egui::Id) -> bool {
 		let editing = ui.memory(|m| m.data.get_temp::<bool>(id)).unwrap_or(false);
 
-		let focus = ui.memory(|m| m.data.get_temp::<bool>(id.with("focus"))).unwrap_or(false);
+		let focus = ui
+			.memory(|m| m.data.get_temp::<bool>(id.with("focus")))
+			.unwrap_or(false);
 
 		if editing {
 			let input = ui.add(
@@ -14,7 +16,7 @@ impl TimeInput {
 					.speed(1.0)
 					.range(0.0..=f64::MAX)
 					.max_decimals(0)
-					.suffix(" ms")
+					.suffix(" ms"),
 			);
 
 			if focus {
@@ -31,7 +33,7 @@ impl TimeInput {
 			}
 
 			if input.changed() {
-				return true
+				return true;
 			}
 		} else {
 			let text = format_time(*time);
@@ -39,7 +41,7 @@ impl TimeInput {
 			let input = ui.add(
 				egui::Label::new(text)
 					.sense(egui::Sense::click_and_drag())
-					.selectable(false)
+					.selectable(false),
 			);
 
 			if input.hovered() {
@@ -60,4 +62,3 @@ impl TimeInput {
 		false
 	}
 }
-

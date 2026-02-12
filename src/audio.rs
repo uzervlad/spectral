@@ -1,7 +1,13 @@
-use std::{fs::File, io::BufReader, path::Path, sync::{Arc, atomic::{AtomicBool, AtomicU16, AtomicU32, AtomicUsize, Ordering}}, time::Duration};
+use std::fs::File;
+use std::io::BufReader;
+use std::path::Path;
+use std::sync::Arc;
+use std::sync::atomic::{AtomicBool, AtomicU16, AtomicU32, AtomicUsize, Ordering};
+use std::time::Duration;
 
 use eyre::Result;
-use rodio::{Decoder, OutputStream, OutputStreamHandle, Sink, Source, buffer::SamplesBuffer};
+use rodio::buffer::SamplesBuffer;
+use rodio::{Decoder, OutputStream, OutputStreamHandle, Sink, Source};
 pub struct AudioData {
 	pub samples: Arc<Vec<f32>>,
 	pub mono_samples: Arc<Vec<f32>>,
@@ -92,7 +98,9 @@ impl rodio::Source for SeekableSource {
 
 	fn total_duration(&self) -> Option<std::time::Duration> {
 		let total_frames = self.samples.len() / self.channels as usize;
-		Some(Duration::from_secs_f64(total_frames as f64 / self.sample_rate as f64))
+		Some(Duration::from_secs_f64(
+			total_frames as f64 / self.sample_rate as f64,
+		))
 	}
 }
 
@@ -142,7 +150,8 @@ impl AudioPlayer {
 		}
 
 		self.samples = Some(audio_data.samples.clone());
-		self.sample_rate.store(audio_data.sample_rate, Ordering::SeqCst);
+		self.sample_rate
+			.store(audio_data.sample_rate, Ordering::SeqCst);
 		self.channels.store(audio_data.channels, Ordering::SeqCst);
 		self.duration = audio_data.duration;
 		self.position.store(0, Ordering::SeqCst);
@@ -169,12 +178,13 @@ impl AudioPlayer {
 
 			self.sink = Some(sink);
 		}
-		
+
 		Ok(())
 	}
 
 	pub fn play_metronome(&self, samples: Arc<Vec<f32>>, sample_rate: u32, channels: u16) {
-		let source = SamplesBuffer::new(channels, sample_rate, samples.as_ref().clone()).amplify(0.2);
+		let source =
+			SamplesBuffer::new(channels, sample_rate, samples.as_ref().clone()).amplify(0.2);
 		self.metronome_sink.append(source);
 	}
 
@@ -190,7 +200,9 @@ impl AudioPlayer {
 		if self.playing.load(Ordering::SeqCst) {
 			self.pause()
 		} else {
-			if self.duration == 0. { return }
+			if self.duration == 0. {
+				return;
+			}
 
 			if self.get_position_ms() >= self.duration - 50. {
 				self.seek_to(0.);
@@ -216,7 +228,8 @@ impl AudioPlayer {
 		let sample_idx = frame * self.channels.load(Ordering::SeqCst) as usize;
 		let max_idx = self.samples.as_ref().map(|s| s.len()).unwrap_or(0);
 
-		self.position.store(sample_idx.min(max_idx), Ordering::SeqCst);
+		self.position
+			.store(sample_idx.min(max_idx), Ordering::SeqCst);
 	}
 
 	pub fn set_volume(&mut self, volume: f32) {
