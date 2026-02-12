@@ -665,60 +665,6 @@ impl eframe::App for SpectralApp {
 
 				ui.separator();
 
-				ui.label("FFT size");
-
-				egui::ComboBox::from_id_salt("fft_size")
-					.selected_text(format!("{}", self.fft_size))
-					.show_ui(ui, |ui| {
-						for &v in [512, 1024, 2048, 4096].iter() {
-							ui.selectable_value(&mut self.fft_size, v, format!("{}", v));
-						}
-					});
-
-				ui.separator();
-
-				ui.label("dB range");
-
-				ui.add(
-					egui_double_slider::DoubleSlider::new(
-						&mut self.min_db,
-						&mut self.max_db,
-						-120.0..=0.0,
-					)
-					.width(150.)
-					.separation_distance(5.),
-				);
-
-				let db_label = ui.add(
-					egui::Label::new(format!("{:.1}..{:.1}", self.min_db, self.max_db))
-						.sense(egui::Sense::click())
-						.selectable(false),
-				);
-
-				if db_label.hovered() {
-					ui.output_mut(|o| o.cursor_icon = egui::CursorIcon::PointingHand);
-				}
-
-				if db_label.double_clicked() {
-					self.min_db = -80.;
-					self.max_db = 0.;
-				}
-
-				ui.separator();
-
-				ui.label("Beat Snap Divisor");
-
-				ui.add(
-					egui::Slider::new(&mut self.snap_divisor, 1..=16)
-						.show_value(false)
-						.max_decimals(0)
-						.step_by(1.),
-				);
-
-				ui.label(format!("1 / {:.0}", self.snap_divisor));
-
-				ui.separator();
-
 				ui.menu_button("Export", |ui| {
 					ui.set_min_width(200.);
 
@@ -737,6 +683,31 @@ impl eframe::App for SpectralApp {
 			.min_width(300.)
 			.show(ctx, |ui| {
 				ui.heading("Timing points");
+				ui.separator();
+
+				ui.horizontal(|ui| {
+					ui.label("Beat Snap Divisor");
+	
+					ui.add(
+						egui::Slider::new(&mut self.snap_divisor, 1..=16)
+							.show_value(false),
+					);
+	
+					let div_label = ui.add(
+						egui::Label::new(format!("1 / {:.0}", self.snap_divisor))
+							.sense(egui::Sense::click())
+							.selectable(false)
+					);
+					
+					if div_label.hovered() {
+						ui.output_mut(|o| o.cursor_icon = egui::CursorIcon::PointingHand);
+					}
+
+					if div_label.double_clicked() {
+						self.snap_divisor = 4;
+					}
+				});
+
 				ui.separator();
 
 				egui::ScrollArea::vertical().show(ui, |ui| {
@@ -835,6 +806,51 @@ impl eframe::App for SpectralApp {
 			self.handle_timeline_input(ui, timeline_rect, &timeline_response);
 
 			self.draw_timeline(ui, timeline_rect);
+
+			ui.separator();
+
+			ui.horizontal(|ui| {
+				ui.label("FFT size");
+
+				egui::ComboBox::from_id_salt("fft_size")
+					.selected_text(format!("{}", self.fft_size))
+					.show_ui(ui, |ui| {
+						for &v in [512, 1024, 2048, 4096].iter() {
+							ui.selectable_value(&mut self.fft_size, v, format!("{}", v));
+						}
+					});
+
+				ui.separator();
+
+				ui.label("dB range");
+
+				ui.add(
+					egui_double_slider::DoubleSlider::new(
+						&mut self.min_db,
+						&mut self.max_db,
+						-120.0..=0.0,
+					)
+					.width(150.)
+					.separation_distance(5.),
+				);
+
+				let db_label = ui.add(
+					egui::Label::new(format!("{:.1}..{:.1}", self.min_db, self.max_db))
+						.sense(egui::Sense::click())
+						.selectable(false),
+				);
+
+				if db_label.hovered() {
+					ui.output_mut(|o| o.cursor_icon = egui::CursorIcon::PointingHand);
+				}
+
+				if db_label.double_clicked() {
+					self.min_db = -80.;
+					self.max_db = 0.;
+				}
+			});
+
+			ui.separator();
 
 			let font = FontId::proportional(12.);
 			let highlight = Color32::from_rgb(50, 170, 255);
