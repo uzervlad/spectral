@@ -1,8 +1,7 @@
-use std::{fs::File, io::BufReader, path::Path, sync::{Arc, atomic::{AtomicBool, AtomicUsize, Ordering}}, time::Duration};
+use std::{fs::File, io::BufReader, path::Path, sync::{Arc, atomic::{AtomicBool, AtomicU16, AtomicU32, AtomicUsize, Ordering}}, time::Duration};
 
 use eyre::Result;
-use rodio::{Decoder, OutputStream, OutputStreamHandle, Sink, Source};
-
+use rodio::{Decoder, OutputStream, OutputStreamHandle, Sink, Source, buffer::SamplesBuffer};
 pub struct AudioData {
 	pub samples: Arc<Vec<f32>>,
 	pub mono_samples: Arc<Vec<f32>>,
@@ -101,12 +100,13 @@ pub struct AudioPlayer {
 	_stream: OutputStream,
 	handle: OutputStreamHandle,
 	sink: Option<Sink>,
+	pub metronome_sink: Arc<Sink>,
 
 	samples: Option<Arc<Vec<f32>>>,
-	sample_rate: u32,
-	channels: u16,
-	position: Arc<AtomicUsize>,
-	playing: Arc<AtomicBool>,
+	pub sample_rate: Arc<AtomicU32>,
+	pub channels: Arc<AtomicU16>,
+	pub position: Arc<AtomicUsize>,
+	pub playing: Arc<AtomicBool>,
 
 	duration: f64,
 	volume: f32,
@@ -116,14 +116,18 @@ impl AudioPlayer {
 	pub fn new() -> Result<Self> {
 		let (_stream, handle) = OutputStream::try_default()?;
 
+		let metronome_sink = Arc::new(Sink::try_new(&handle)?);
+		metronome_sink.set_volume(0.2);
+
 		Ok(Self {
 			_stream,
 			handle,
 			sink: None,
+			metronome_sink,
 
 			samples: None,
-			sample_rate: 41000,
-			channels: 1,
+			sample_rate: Arc::new(AtomicU32::new(41000)),
+			channels: Arc::new(AtomicU16::new(1)),
 			position: Arc::new(AtomicUsize::new(0)),
 			playing: Arc::new(AtomicBool::new(false)),
 
@@ -138,8 +142,8 @@ impl AudioPlayer {
 		}
 
 		self.samples = Some(audio_data.samples.clone());
-		self.sample_rate = audio_data.sample_rate;
-		self.channels = audio_data.channels;
+		self.sample_rate.store(audio_data.sample_rate, Ordering::SeqCst);
+		self.channels.store(audio_data.channels, Ordering::SeqCst);
 		self.duration = audio_data.duration;
 		self.position.store(0, Ordering::SeqCst);
 		self.playing.store(false, Ordering::SeqCst);
@@ -153,8 +157,8 @@ impl AudioPlayer {
 		if let Some(samples) = &self.samples {
 			let source = SeekableSource {
 				samples: samples.clone(),
-				sample_rate: self.sample_rate,
-				channels: self.channels,
+				sample_rate: self.sample_rate.load(Ordering::SeqCst),
+				channels: self.channels.load(Ordering::SeqCst),
 				position: self.position.clone(),
 				playing: self.playing.clone(),
 			};
@@ -167,6 +171,11 @@ impl AudioPlayer {
 		}
 		
 		Ok(())
+	}
+
+	pub fn play_metronome(&self, samples: Arc<Vec<f32>>, sample_rate: u32, channels: u16) {
+		let source = SamplesBuffer::new(channels, sample_rate, samples.as_ref().clone()).amplify(0.2);
+		self.metronome_sink.append(source);
 	}
 
 	pub fn play(&self) {
@@ -196,15 +205,15 @@ impl AudioPlayer {
 
 	pub fn get_position_ms(&self) -> f64 {
 		let pos = self.position.load(Ordering::SeqCst);
-		let frame = pos / self.channels as usize;
-		(frame as f64 / self.sample_rate as f64) * 1000.
+		let frame = pos / self.channels.load(Ordering::SeqCst) as usize;
+		(frame as f64 / self.sample_rate.load(Ordering::SeqCst) as f64) * 1000.
 	}
 
 	pub fn seek_to(&self, ms: f64) {
 		let ms = ms.clamp(0., self.duration);
-		let frame = ((ms / 1000.) * self.sample_rate as f64) as usize;
+		let frame = ((ms / 1000.) * self.sample_rate.load(Ordering::SeqCst) as f64) as usize;
 
-		let sample_idx = frame * self.channels as usize;
+		let sample_idx = frame * self.channels.load(Ordering::SeqCst) as usize;
 		let max_idx = self.samples.as_ref().map(|s| s.len()).unwrap_or(0);
 
 		self.position.store(sample_idx.min(max_idx), Ordering::SeqCst);
@@ -219,5 +228,13 @@ impl AudioPlayer {
 
 	pub fn get_volume(&self) -> f32 {
 		self.volume
+	}
+
+	pub fn set_metronome_volume(&self, volume: f32) {
+		self.metronome_sink.set_volume(volume);
+	}
+
+	pub fn get_metronome_volume(&self) -> f32 {
+		self.metronome_sink.volume()
 	}
 }

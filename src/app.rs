@@ -1,8 +1,8 @@
-use std::{path::Path, sync::mpsc::{self, Receiver, Sender}, thread};
+use std::{path::Path, sync::{Arc, RwLock, mpsc::{self, Receiver, Sender}}, thread::{self, JoinHandle}};
 
 use egui::{Color32, ColorImage, FontId, Pos2, Rect, Sense, Stroke, TextFormat, TextureHandle, Ui, Vec2, text::LayoutJob};
 
-use crate::{audio::{AudioData, AudioPlayer}, events::SpectralEvent, export::{ExportFormat, export_timing_points}, spectrogram::{CachedSpectrogram, Spectrogram}, timing::{SnapDivision, TimingPoint}, util::{format_time, magma_colormap}, widgets::{time::TimeInput, timeline::Timeline}};
+use crate::{audio::{AudioData, AudioPlayer}, events::SpectralEvent, export::{ExportFormat, export_timing_points}, metronome::{MetronomeState, metronome_thread}, spectrogram::{CachedSpectrogram, Spectrogram}, timing::{SnapDivision, TimingPoint}, util::{format_time, magma_colormap}, widgets::{time::TimeInput, timeline::Timeline}};
 
 enum TimingMode {
 	Idle,
@@ -12,6 +12,7 @@ enum TimingMode {
 pub struct SpectralApp {
 	audio_data: Option<AudioData>,
 	audio_player: AudioPlayer,
+	_metronome: JoinHandle<()>,
 
 	event_rx: Receiver<SpectralEvent>,
 	event_tx: Sender<SpectralEvent>,
@@ -31,16 +32,30 @@ pub struct SpectralApp {
 
 	timing_mode: TimingMode,
 
-	timing_points: Vec<TimingPoint>,
+	timing_points: Arc<RwLock<Vec<TimingPoint>>>,
 }
 
 impl SpectralApp {
 	pub fn new() -> Self {
 		let (event_tx, event_rx) = mpsc::channel();
 
+		let audio_player = AudioPlayer::new().expect("penis");
+		let timing_points = Arc::new(RwLock::new(vec![
+			TimingPoint::new(100., 120.),
+			TimingPoint::new(7727., 222.22),
+		]));
+
+		let state = MetronomeState::from(&audio_player);
+		let sink = audio_player.metronome_sink.clone();
+		let _tp = timing_points.clone();
+		let _metronome = thread::spawn(move || {
+			metronome_thread(state, sink, _tp);
+		});
+
 		Self {
 			audio_data: None,
-			audio_player: AudioPlayer::new().expect("penis"),
+			audio_player,
+			_metronome,
 
 			event_rx,
 			event_tx,
@@ -60,10 +75,7 @@ impl SpectralApp {
 
 			timing_mode: TimingMode::Idle,
 
-			timing_points: vec![
-				TimingPoint::new(100., 120.),
-				TimingPoint::new(7727., 222.22),
-			],
+			timing_points,
 		}
 	}
 
@@ -84,7 +96,7 @@ impl SpectralApp {
 
 				self.audio_data = Some(data);
 				self.cached_spectrogram = None;
-				self.timing_points.clear();
+				self.timing_points.write().unwrap().clear();
 				self.timeline.reset();
 			},
 			Err(e) => {
@@ -106,20 +118,22 @@ impl SpectralApp {
 	}
 
 	fn sort_timing_points(&mut self) {
-		self.timing_points.sort_by(|a, b| a.offset.partial_cmp(&b.offset).unwrap());
+		self.timing_points.write().unwrap().sort_by(|a, b| a.offset.partial_cmp(&b.offset).unwrap());
 	}
 
 	fn get_beat_ticks(&self, start: f64, end: f64) -> Vec<(f64, SnapDivision)> {
 		let mut ticks = vec![];
 
-		for (i, tp) in self.timing_points.iter().enumerate() {
+		let timing_points = self.timing_points.read().unwrap();
+
+		for (i, tp) in timing_points.iter().enumerate() {
 			let ms_per_beat = tp.ms_per_beat();
 			let ms_per_tick = ms_per_beat / self.snap_divisor as f64;
 
 			// TODO: stop rendering at low zoom
 
-			let section_end = if i + 1 < self.timing_points.len() {
-				self.timing_points[i + 1].offset
+			let section_end = if i + 1 < timing_points.len() {
+				timing_points[i + 1].offset
 			} else {
 				self.audio_data
 					.as_ref()
@@ -359,7 +373,7 @@ impl SpectralApp {
 	}
 
 	fn draw_timing_points(&self, ui: &mut Ui, rect: Rect) {
-		for tp in self.timing_points.iter() {
+		for tp in self.timing_points.read().unwrap().iter() {
 			let x = self.timeline.ms_to_x(tp.offset, rect);
 			if x >= rect.left() && x <= rect.right() {
 				ui.painter_at(rect).line_segment(
@@ -490,7 +504,7 @@ impl SpectralApp {
 
 						let offset = start.min(click_ms);
 						let tp = TimingPoint::new(offset, bpm);
-						self.timing_points.push(tp);
+						self.timing_points.write().unwrap().push(tp);
 						self.sort_timing_points();
 
 						self.timing_mode = TimingMode::Idle;
@@ -559,6 +573,21 @@ impl eframe::App for SpectralApp {
 
 				ui.separator();
 
+				ui.label("Metronome volume:");
+
+				let mut volume = self.audio_player.get_metronome_volume();
+				if ui.add(
+					egui::Slider::new(&mut volume, 0.0..=1.0)
+						.show_value(false)
+						.fixed_decimals(2)
+				).changed() {
+					self.audio_player.set_metronome_volume(volume);
+				}
+
+				ui.label(format!("{:.0}%", volume * 100.));
+
+				ui.separator();
+
 				ui.label("FFT size");
 
 				egui::ComboBox::from_id_salt("fft_size")
@@ -618,7 +647,7 @@ impl eframe::App for SpectralApp {
 
 					for &fmt in ExportFormat::list() {
 						if ui.button(format!("{}", fmt)).clicked() {
-							export_timing_points(self.timing_points.clone(), fmt);
+							export_timing_points(self.timing_points.read().unwrap().clone(), fmt);
 							ui.close();
 						}
 					}
@@ -637,7 +666,7 @@ impl eframe::App for SpectralApp {
 					let mut timing_point_delete = None;
 					let mut resort_timing_points = false;
 
-					for (i, timing_point) in self.timing_points.iter_mut().enumerate() {
+					for (i, timing_point) in self.timing_points.write().unwrap().iter_mut().enumerate() {
 						// TODO: selection?
 						let frame = egui::Frame::new()
 							.fill(Color32::TRANSPARENT)
@@ -685,7 +714,7 @@ impl eframe::App for SpectralApp {
 					}
 
 					if let Some(idx) = timing_point_delete {
-						self.timing_points.remove(idx);
+						self.timing_points.write().unwrap().remove(idx);
 					}
 
 					if resort_timing_points {
@@ -758,7 +787,9 @@ impl eframe::App for SpectralApp {
 				("Click", true),
 				(" to start a new timing section. "),
 				("Click again", true),
-				(" to select the next beat.\n"),
+				(" to select the next beat, or press "),
+				("Escape", true),
+				(" to cancel.\n"),
 
 				("Right Click", true),
 				(" to seek"),
