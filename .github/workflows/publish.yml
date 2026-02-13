@@ -1,0 +1,71 @@
+name: Publish release
+
+on:
+  push:
+    tags:
+      - v*
+
+permissions:
+  contents: write
+
+env:
+  CARGO_TERM_COLOR: always
+  BINARY_NAME: spectral
+
+jobs:
+  build:
+    strategy:
+      matrix:
+        include:
+          - os: ubuntu-latest
+            target: x86_64-unknown-linux-gnu
+            artifact: spectral-linux
+            binary-name: spectral
+          - os: windows-latest
+            target: x86_64-pc-windows-msvc
+            artifact: spectral-windows.exe
+            binary-name: spectral.exe
+    runs-on: ${{ matrix.os }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Install toolchain
+        run: rustup toolchain install stable
+
+      - name: Install ALSA dependencies
+        if: runner.os == 'Linux'
+        run: sudo apt-get update && sudo apt-get install -y libasound2-dev
+
+      - name: Cache dependencies
+        uses: Swatinem/rust-cache@v2
+
+      - name: Build
+        run: cargo build --release --target ${{ matrix.target }}
+
+      - name: Rename binary
+        run: |
+          mv target/${{ matrix.target }}/release/${{ matrix.binary-name }} ${{ matrix.artifact }}
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v6
+        with:
+          name: ${{ matrix.artifact }}
+          path: ${{ matrix.artifact }}
+  release:
+    needs:
+      - build
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download artifacts
+        uses: actions/download-artifact@v6
+        with:
+          path: ./artifacts/
+          merge-multiple: true
+
+      - name: Create release
+        run: |
+          gh release create "$GITHUB_REF_NAME" --repo=uzervlad/spectral ./artifacts/*
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
