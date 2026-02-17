@@ -593,6 +593,17 @@ impl eframe::App for SpectralApp {
 			self.handle_event(event);
 		}
 
+		if let Some(dropped_file) = ctx.input(|i| i.raw.dropped_files.first().cloned()) {
+			if let Some(path) = dropped_file.path
+				&& path.extension()
+					.map(|e| e.to_str().unwrap())
+					.map(|e| ["mp3", "ogg", "wav", "flac"].contains(&e))
+					.unwrap_or(false)
+			{
+				self.handle_event(SpectralEvent::OpenAudio { path });
+			}
+		}
+
 		if ctx.input(|i| i.key_pressed(egui::Key::Space)) {
 			self.audio_player.play_pause();
 		}
