@@ -197,7 +197,7 @@ impl SpectralApp {
 						};
 						let bpm = (bpm * 100.).round() / 100.;
 
-						let offset = start.min(click_ms);
+						let offset = start.min(click_ms).round();
 						let tp = TimingPoint::new(offset, bpm);
 						self.timing_points.write().unwrap().push(tp);
 						self.sort_timing_points();
