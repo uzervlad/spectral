@@ -266,10 +266,7 @@ impl SpectralApp {
 			let tp_x = rect.left() + (tp.offset / audio_data.duration) as f32 * rect.width();
 
 			painter.line_segment(
-				[
-					Pos2::new(tp_x, rect.top()),
-					Pos2::new(tp_x, rect.bottom()),
-				],
+				[Pos2::new(tp_x, rect.top()), Pos2::new(tp_x, rect.bottom())],
 				Stroke::new(1., COLOR_TIMING_POINT),
 			);
 		}
