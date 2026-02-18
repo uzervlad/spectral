@@ -2,6 +2,7 @@ use egui::text::LayoutJob;
 use egui::{Color32, FontId, Pos2, Rect, Sense, TextFormat, Vec2};
 
 use crate::app::SpectralApp;
+use crate::app::history::EditHistoryEntry;
 use crate::export::{ExportFormat, export_timing_points};
 use crate::widgets::time::TimeInput;
 
@@ -24,6 +25,24 @@ impl SpectralApp {
 					.clicked()
 				{
 					self.audio_player.play_pause();
+				}
+
+				ui.separator();
+
+				if ui.add_enabled(self.history.can_undo(), egui::Button::new("Undo"))
+					.clicked()
+				{
+					if let Some(entry) = self.history.undo() {
+						self.undo(entry);
+					}
+				}
+
+				if ui.add_enabled(self.history.can_redo(), egui::Button::new("Redo"))
+					.clicked()
+				{
+					if let Some(entry) = self.history.redo() {
+						self.redo(entry);
+					}
 				}
 
 				ui.separator();
@@ -164,7 +183,9 @@ impl SpectralApp {
 					}
 
 					if let Some(idx) = timing_point_delete {
-						self.timing_points.write().unwrap().remove(idx);
+						let mut timing_points = self.timing_points.write().unwrap();
+						self.history.push(EditHistoryEntry::DeleteTimingPoint(timing_points[idx].clone()));
+						timing_points.remove(idx);
 					}
 
 					if resort_timing_points {
