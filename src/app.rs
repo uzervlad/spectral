@@ -12,6 +12,7 @@ use crate::audio::{AudioData, AudioPlayer};
 use crate::events::SpectralEvent;
 use crate::export::{ExportFormat, export_timing_points};
 use crate::metronome::{MetronomeState, metronome_thread};
+use crate::settings::SettingsManager;
 use crate::spectrogram::{CachedSpectrogram, Spectrogram};
 use crate::timing::{SnapDivision, TimingPoint};
 use crate::util::{format_time, magma_colormap};
@@ -27,6 +28,8 @@ pub struct SpectralApp {
 	audio_data: Option<AudioData>,
 	audio_player: AudioPlayer,
 	_metronome: JoinHandle<()>,
+
+	settings: Arc<SettingsManager>,
 
 	event_rx: Receiver<SpectralEvent>,
 	event_tx: Sender<SpectralEvent>,
@@ -53,7 +56,9 @@ impl SpectralApp {
 	pub fn new() -> Self {
 		let (event_tx, event_rx) = mpsc::channel();
 
-		let audio_player = AudioPlayer::new().expect("penis");
+		let settings = Arc::new(SettingsManager::new());
+
+		let audio_player = AudioPlayer::new(settings.clone()).expect("penis");
 		let timing_points = Arc::new(RwLock::new(vec![
 			TimingPoint::new(100., 120.),
 			TimingPoint::new(7727., 222.22),
@@ -70,6 +75,8 @@ impl SpectralApp {
 			audio_data: None,
 			audio_player,
 			_metronome,
+
+			settings,
 
 			event_rx,
 			event_tx,
@@ -652,6 +659,7 @@ impl eframe::App for SpectralApp {
 					.changed()
 				{
 					self.audio_player.set_volume(volume);
+					self.settings.write(move |s| s.audio_volume = volume);
 				}
 
 				ui.label(format!("{:.0}%", volume * 100.));
@@ -670,6 +678,7 @@ impl eframe::App for SpectralApp {
 					.changed()
 				{
 					self.audio_player.set_metronome_volume(volume);
+					self.settings.write(move |s| s.metronome_volume = volume);
 				}
 
 				ui.label(format!("{:.0}%", volume * 100.));

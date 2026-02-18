@@ -8,6 +8,8 @@ use std::time::Duration;
 use eyre::Result;
 use rodio::buffer::SamplesBuffer;
 use rodio::{Decoder, OutputStream, OutputStreamHandle, Sink, Source};
+
+use crate::settings::SettingsManager;
 pub struct AudioData {
 	pub samples: Arc<Vec<f32>>,
 	pub mono_samples: Arc<Vec<f32>>,
@@ -121,11 +123,11 @@ pub struct AudioPlayer {
 }
 
 impl AudioPlayer {
-	pub fn new() -> Result<Self> {
+	pub fn new(settings: Arc<SettingsManager>) -> Result<Self> {
 		let (_stream, handle) = OutputStream::try_default()?;
 
 		let metronome_sink = Arc::new(Sink::try_new(&handle)?);
-		metronome_sink.set_volume(0.2);
+		metronome_sink.set_volume(settings.read(|s| s.metronome_volume));
 
 		Ok(Self {
 			_stream,
@@ -140,7 +142,7 @@ impl AudioPlayer {
 			playing: Arc::new(AtomicBool::new(false)),
 
 			duration: 0.,
-			volume: 0.4,
+			volume: settings.read(|s| s.audio_volume),
 		})
 	}
 
