@@ -1,19 +1,16 @@
 use egui::{Color32, Pos2, Rect, Sense, Stroke, StrokeKind, Ui};
 
 use crate::app::{SpectralApp, TimingMode};
+use crate::colors::{
+	COLOR_AXES_STROKE, COLOR_AXES_TEXT, COLOR_CURSOR, COLOR_PLAYHEAD, COLOR_SCROLL,
+	COLOR_SCROLL_OUTLINE, COLOR_SCROLL_OUTLINE_HOVER, COLOR_SCROLL_THUMB, COLOR_SCROLL_THUMB_HOVER,
+	COLOR_TIMING_POINT, COLOR_TIMING_POINT_TEMPORARY,
+};
 use crate::util::format_time;
 
 impl SpectralApp {
 	pub fn draw_ruler(&self, ui: &mut Ui, rect: Rect) {
 		let painter = ui.painter_at(rect);
-		painter.rect_filled(rect, 0., Color32::from_gray(27));
-		painter.line_segment(
-			[
-				Pos2::new(rect.left(), rect.bottom()),
-				Pos2::new(rect.right(), rect.bottom()),
-			],
-			Stroke::new(1., Color32::from_gray(65)),
-		);
 
 		let (vis_start, vis_end) = self.timeline.visible_range(rect.width());
 
@@ -38,7 +35,7 @@ impl SpectralApp {
 			if x >= rect.left() && x <= rect.right() {
 				painter.line_segment(
 					[Pos2::new(x, rect.top()), Pos2::new(x, rect.bottom())],
-					Stroke::new(1., Color32::from_gray(50)),
+					Stroke::new(1., COLOR_AXES_STROKE),
 				);
 
 				let time_text = format_time(ms);
@@ -47,7 +44,7 @@ impl SpectralApp {
 					egui::Align2::LEFT_CENTER,
 					time_text,
 					egui::FontId::proportional(10.),
-					Color32::from_gray(100),
+					COLOR_AXES_TEXT,
 				);
 			}
 		}
@@ -55,8 +52,6 @@ impl SpectralApp {
 
 	pub fn draw_frequency_axis(&self, ui: &mut Ui, rect: Rect) {
 		let painter = ui.painter_at(rect);
-
-		painter.rect_filled(rect, 0., Color32::from_gray(27));
 
 		if let Some(data) = &self.audio_data {
 			let max_freq = data.sample_rate as f32 / 2.;
@@ -73,7 +68,7 @@ impl SpectralApp {
 				if y >= rect.top() && y <= rect.bottom() {
 					painter.line_segment(
 						[Pos2::new(rect.right() - 4.0, y), Pos2::new(rect.right(), y)],
-						Stroke::new(1., Color32::from_gray(100)),
+						Stroke::new(1., COLOR_AXES_STROKE),
 					);
 
 					let label = if freq >= 1000. {
@@ -87,7 +82,7 @@ impl SpectralApp {
 						egui::Align2::CENTER_CENTER,
 						&label,
 						egui::FontId::proportional(11.),
-						Color32::from_gray(160),
+						COLOR_AXES_TEXT,
 					);
 				}
 			}
@@ -107,8 +102,6 @@ impl SpectralApp {
 
 	pub fn draw_spectrogram(&mut self, ui: &mut Ui, rect: Rect) {
 		let painter = ui.painter_at(rect);
-
-		painter.rect_filled(rect, 0., Color32::from_gray(15));
 
 		if self.audio_data.is_none() {
 			return;
@@ -135,7 +128,7 @@ impl SpectralApp {
 
 			ui.painter_at(rect).line_segment(
 				[Pos2::new(x, rect.top()), Pos2::new(x, rect.bottom())],
-				Stroke::new(1., Color32::from_gray(170)),
+				Stroke::new(1., COLOR_CURSOR),
 			);
 		}
 	}
@@ -145,12 +138,10 @@ impl SpectralApp {
 			.timeline
 			.ms_to_x(self.audio_player.get_position_ms(), rect);
 
-		let color = Color32::from_rgb(102, 255, 204);
-
 		if x >= rect.left() && x <= rect.right() {
 			ui.painter_at(rect).line_segment(
 				[Pos2::new(x, rect.top()), Pos2::new(x, rect.bottom())],
-				Stroke::new(2., color),
+				Stroke::new(2., COLOR_PLAYHEAD),
 			);
 
 			let tri = vec![
@@ -159,8 +150,11 @@ impl SpectralApp {
 				Pos2::new(x, rect.top() + 12.),
 			];
 
-			ui.painter_at(rect)
-				.add(egui::Shape::convex_polygon(tri, color, Stroke::NONE));
+			ui.painter_at(rect).add(egui::Shape::convex_polygon(
+				tri,
+				COLOR_PLAYHEAD,
+				Stroke::NONE,
+			));
 		}
 	}
 
@@ -170,7 +164,7 @@ impl SpectralApp {
 			if x >= rect.left() && x <= rect.right() {
 				ui.painter_at(rect).line_segment(
 					[Pos2::new(x, rect.top()), Pos2::new(x, rect.bottom())],
-					Stroke::new(2., Color32::GOLD),
+					Stroke::new(2., COLOR_TIMING_POINT),
 				);
 
 				let tri = vec![
@@ -181,7 +175,7 @@ impl SpectralApp {
 
 				ui.painter_at(rect).add(egui::Shape::convex_polygon(
 					tri,
-					Color32::GOLD,
+					COLOR_TIMING_POINT,
 					Stroke::NONE,
 				));
 			}
@@ -193,7 +187,7 @@ impl SpectralApp {
 
 				ui.painter_at(rect).line_segment(
 					[Pos2::new(x, rect.top()), Pos2::new(x, rect.bottom())],
-					Stroke::new(2., Color32::CYAN),
+					Stroke::new(2., COLOR_TIMING_POINT_TEMPORARY),
 				);
 
 				ui.painter_at(rect).text(
@@ -201,7 +195,7 @@ impl SpectralApp {
 					egui::Align2::CENTER_TOP,
 					"START",
 					egui::FontId::proportional(9.),
-					Color32::CYAN,
+					COLOR_TIMING_POINT_TEMPORARY,
 				);
 			},
 			TimingMode::Idle => {},
@@ -251,7 +245,7 @@ impl SpectralApp {
 		let bar_response = ui.allocate_rect(rect, Sense::click());
 
 		let painter = ui.painter_at(rect);
-		painter.rect_filled(rect, 0., Color32::from_gray(40));
+		painter.rect_filled(rect, 0., COLOR_SCROLL);
 
 		let Some(ref audio_data) = self.audio_data else {
 			return;
@@ -272,10 +266,18 @@ impl SpectralApp {
 		painter.rect(
 			thumb_rect,
 			0.,
-			Color32::from_gray(if thumb_response.hovered() { 65 } else { 55 }),
+			if thumb_response.hovered() {
+				COLOR_SCROLL_THUMB_HOVER
+			} else {
+				COLOR_SCROLL_THUMB
+			},
 			Stroke::new(
 				1.,
-				Color32::from_gray(if thumb_response.hovered() { 80 } else { 70 }),
+				if thumb_response.hovered() {
+					COLOR_SCROLL_OUTLINE_HOVER
+				} else {
+					COLOR_SCROLL_OUTLINE
+				},
 			),
 			StrokeKind::Inside,
 		);

@@ -1,5 +1,10 @@
 use egui::Color32;
 
+use crate::colors::{
+	COLOR_SNAP_BEAT, COLOR_SNAP_EIGHTH, COLOR_SNAP_HALF, COLOR_SNAP_OTHER, COLOR_SNAP_QUARTER,
+	COLOR_SNAP_SIXTEENTH, COLOR_SNAP_SIXTH, COLOR_SNAP_THIRD, COLOR_SNAP_TWELFTH,
+};
+
 #[derive(Clone, Copy, PartialEq)]
 pub struct TimingPoint {
 	id: egui::Id,
@@ -43,15 +48,15 @@ pub enum SnapDivision {
 impl SnapDivision {
 	pub fn color(&self) -> Color32 {
 		let color = match self {
-			Self::Downbeat | Self::Beat => Color32::from_gray(230),
-			Self::Half => Color32::RED,
-			Self::Third => Color32::PURPLE,
-			Self::Quarter => Color32::CYAN,
-			Self::Sixth => Color32::GOLD,
-			Self::Eighth => Color32::LIGHT_YELLOW,
-			Self::Twelfth => Color32::ORANGE,
-			Self::Sixteenth => Color32::PURPLE,
-			_ => Color32::from_rgb(179, 217, 68),
+			Self::Downbeat | Self::Beat => COLOR_SNAP_BEAT,
+			Self::Half => COLOR_SNAP_HALF,
+			Self::Third => COLOR_SNAP_THIRD,
+			Self::Quarter => COLOR_SNAP_QUARTER,
+			Self::Sixth => COLOR_SNAP_SIXTH,
+			Self::Eighth => COLOR_SNAP_EIGHTH,
+			Self::Twelfth => COLOR_SNAP_TWELFTH,
+			Self::Sixteenth => COLOR_SNAP_SIXTEENTH,
+			_ => COLOR_SNAP_OTHER,
 		};
 
 		let (r, g, b, _) = color.to_tuple();

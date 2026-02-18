@@ -3,6 +3,7 @@ use egui::{Color32, FontId, Pos2, Rect, Sense, TextFormat, Vec2};
 
 use crate::app::SpectralApp;
 use crate::app::history::EditHistoryEntry;
+use crate::colors::COLOR_TEXT_HIGHLIGHT;
 use crate::export::{ExportFormat, export_timing_points};
 use crate::widgets::time::TimeInput;
 
@@ -361,7 +362,7 @@ impl SpectralApp {
 			ui.separator();
 
 			let font = FontId::proportional(12.);
-			let highlight = Color32::from_rgb(50, 170, 255);
+			let highlight = COLOR_TEXT_HIGHLIGHT;
 			let mut job = LayoutJob::default();
 
 			macro_rules! add_text {

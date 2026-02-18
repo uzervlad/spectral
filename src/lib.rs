@@ -1,4 +1,5 @@
 pub mod audio;
+pub mod colors;
 pub mod events;
 pub mod settings;
 pub mod timing;

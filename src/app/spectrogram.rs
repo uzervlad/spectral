@@ -1,4 +1,4 @@
-use egui::{Color32, ColorImage, TextureHandle};
+use egui::{ColorImage, TextureHandle};
 
 use crate::app::SpectralApp;
 use crate::spectrogram::{CachedSpectrogram, Spectrogram};
@@ -42,7 +42,7 @@ impl SpectralApp {
 
 		let freq_bins = self.spectrogram.fft_size / 2;
 
-		let mut image = ColorImage::filled([width, height], Color32::BLACK);
+		let mut image = ColorImage::filled([width, height], Default::default());
 
 		for (x, column) in columns.iter().enumerate() {
 			for y in 0..height {
