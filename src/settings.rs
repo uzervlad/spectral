@@ -66,8 +66,6 @@ fn settings_store_listener(
 	loop {
 		let timeout = save_delay.checked_sub(last_change.elapsed());
 
-		println!("{:?}", timeout);
-
 		match timeout {
 			Some(timeout) => match rx.recv_timeout(timeout) {
 				Ok(cb) => {
@@ -79,7 +77,6 @@ fn settings_store_listener(
 				},
 				Err(RecvTimeoutError::Timeout) => {
 					if pending_save {
-						println!("saving");
 						let settings = settings.read().unwrap();
 						settings.save();
 						pending_save = false;
