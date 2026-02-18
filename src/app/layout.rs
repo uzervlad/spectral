@@ -1,6 +1,9 @@
-use egui::{Color32, FontId, Pos2, Rect, Sense, TextFormat, Vec2, text::LayoutJob};
+use egui::text::LayoutJob;
+use egui::{Color32, FontId, Pos2, Rect, Sense, TextFormat, Vec2};
 
-use crate::{app::SpectralApp, export::{ExportFormat, export_timing_points}, widgets::time::TimeInput};
+use crate::app::SpectralApp;
+use crate::export::{ExportFormat, export_timing_points};
+use crate::widgets::time::TimeInput;
 
 impl SpectralApp {
 	pub fn draw_top_panel(&mut self, ctx: &egui::Context) {
@@ -86,18 +89,15 @@ impl SpectralApp {
 
 				ui.horizontal(|ui| {
 					ui.label("Beat Snap Divisor");
-	
-					ui.add(
-						egui::Slider::new(&mut self.snap_divisor, 1..=16)
-							.show_value(false),
-					);
-	
+
+					ui.add(egui::Slider::new(&mut self.snap_divisor, 1..=16).show_value(false));
+
 					let div_label = ui.add(
 						egui::Label::new(format!("1 / {:.0}", self.snap_divisor))
 							.sense(egui::Sense::click())
-							.selectable(false)
+							.selectable(false),
 					);
-					
+
 					if div_label.hovered() {
 						ui.output_mut(|o| o.cursor_icon = egui::CursorIcon::PointingHand);
 					}

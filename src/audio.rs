@@ -185,8 +185,7 @@ impl AudioPlayer {
 	}
 
 	pub fn play_metronome(&self, samples: Arc<Vec<f32>>, sample_rate: u32, channels: u16) {
-		let source =
-			SamplesBuffer::new(channels, sample_rate, samples.as_ref().clone());
+		let source = SamplesBuffer::new(channels, sample_rate, samples.as_ref().clone());
 		self.metronome_sink.append(source);
 	}
 

@@ -1,6 +1,7 @@
 use egui::{Color32, Pos2, Rect, Stroke, Ui};
 
-use crate::{app::{SpectralApp, TimingMode}, util::format_time};
+use crate::app::{SpectralApp, TimingMode};
+use crate::util::format_time;
 
 impl SpectralApp {
 	pub fn draw_ruler(&self, ui: &mut Ui, rect: Rect) {

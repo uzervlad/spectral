@@ -1,6 +1,8 @@
 use egui::{Color32, ColorImage, TextureHandle};
 
-use crate::{app::SpectralApp, spectrogram::{CachedSpectrogram, Spectrogram}, util::magma_colormap};
+use crate::app::SpectralApp;
+use crate::spectrogram::{CachedSpectrogram, Spectrogram};
+use crate::util::magma_colormap;
 
 impl SpectralApp {
 	pub fn generate_spectrogram(

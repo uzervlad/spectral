@@ -1,4 +1,5 @@
-use crate::{app::SpectralApp, timing::SnapDivision};
+use crate::app::SpectralApp;
+use crate::timing::SnapDivision;
 
 impl SpectralApp {
 	pub fn sort_timing_points(&mut self) {

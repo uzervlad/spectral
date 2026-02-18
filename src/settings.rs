@@ -1,4 +1,9 @@
-use std::{env::current_dir, fs, path::PathBuf, sync::{Arc, RwLock, mpsc::{self, Receiver, RecvTimeoutError, Sender}}, thread, time::{Duration, Instant}};
+use std::env::current_dir;
+use std::path::PathBuf;
+use std::sync::mpsc::{self, Receiver, RecvTimeoutError, Sender};
+use std::sync::{Arc, RwLock};
+use std::time::{Duration, Instant};
+use std::{fs, thread};
 
 use serde::{Deserialize, Serialize};
 
@@ -25,7 +30,7 @@ impl Default for Settings {
 impl Settings {
 	fn load() -> Self {
 		let _save_path = dirs::config_local_dir()
-			.unwrap_or_else(|| { current_dir().unwrap() })
+			.unwrap_or_else(|| current_dir().unwrap())
 			.join("spectral");
 
 		if !_save_path.exists() {
@@ -62,38 +67,34 @@ fn settings_store_listener(
 		println!("{:?}", timeout);
 
 		match timeout {
-			Some(timeout) => {
-				match rx.recv_timeout(timeout) {
-					Ok(cb) => {
-						let mut settings = settings.write().unwrap();
-						cb(&mut settings);
+			Some(timeout) => match rx.recv_timeout(timeout) {
+				Ok(cb) => {
+					let mut settings = settings.write().unwrap();
+					cb(&mut settings);
 
-						last_change = Instant::now();
-						pending_save = true;
-					},
-					Err(RecvTimeoutError::Timeout) => {
-						if pending_save {
-							println!("saving");
-							let settings = settings.read().unwrap();
-							settings.save();
-							pending_save = false;
-						}
-					},
-					Err(RecvTimeoutError::Disconnected) => break,
-				}
+					last_change = Instant::now();
+					pending_save = true;
+				},
+				Err(RecvTimeoutError::Timeout) => {
+					if pending_save {
+						println!("saving");
+						let settings = settings.read().unwrap();
+						settings.save();
+						pending_save = false;
+					}
+				},
+				Err(RecvTimeoutError::Disconnected) => break,
 			},
-			None => {
-				match rx.recv() {
-					Ok(cb) => {
-						let mut settings = settings.write().unwrap();
-						cb(&mut settings);
+			None => match rx.recv() {
+				Ok(cb) => {
+					let mut settings = settings.write().unwrap();
+					cb(&mut settings);
 
-						last_change = Instant::now();
-						pending_save = true;
-					},
-					_ => break,
-				}
-			}
+					last_change = Instant::now();
+					pending_save = true;
+				},
+				_ => break,
+			},
 		}
 	}
 }
@@ -114,10 +115,7 @@ impl SettingsManager {
 			settings_store_listener(_settings, rx);
 		});
 
-		Self {
-			settings,
-			tx,
-		}
+		Self { settings, tx }
 	}
 
 	pub fn read<T>(&self, cb: impl Fn(&Settings) -> T) -> T {
@@ -128,7 +126,7 @@ impl SettingsManager {
 
 	pub fn write(&self, cb: impl FnOnce(&mut Settings) + Send + 'static) {
 		let cb = Box::new(cb);
-		
+
 		let _ = self.tx.send(cb);
 	}
 }
