@@ -13,7 +13,11 @@
 ![](/assets/screenshot.jpg)
 </details>
 
-### How to run
+### For users
+
+You can download the latest release [here](https://github.com/uzervlad/spectral/releases/latest)
+
+### For developers
 
 #### Prerequisites
 
@@ -22,4 +26,4 @@
 ```bash
 $ cargo run --release
 ```
-<sub>It is recommended to run in release mode, since spectrogram rendering is incredibly slow</sub>
+<sub>It is recommended to run in release mode, since spectrogram rendering can be incredibly slow</sub>
