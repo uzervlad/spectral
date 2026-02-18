@@ -283,7 +283,8 @@ impl SpectralApp {
 		if thumb_response.dragged() {
 			let delta_pixels = thumb_response.drag_delta().x as f64;
 			let delta_ms = delta_pixels * audio_data.duration / rect.width() as f64;
-			self.timeline.scroll_ms(delta_ms, audio_data.duration, rect.width());
+			self.timeline
+				.scroll_ms(delta_ms, audio_data.duration, rect.width());
 		}
 
 		if bar_response.clicked()
@@ -291,7 +292,8 @@ impl SpectralApp {
 			&& let Some(pos) = bar_response.interact_pointer_pos()
 		{
 			let clicked_ms = ((pos.x - rect.left()) / rect.width()) as f64 * audio_data.duration;
-			self.timeline.scroll_to(clicked_ms, audio_data.duration, rect.width());
+			self.timeline
+				.scroll_to(clicked_ms, audio_data.duration, rect.width());
 		}
 	}
 }

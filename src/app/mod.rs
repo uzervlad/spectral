@@ -5,6 +5,7 @@ use std::thread::{self, JoinHandle};
 
 use egui::{Rect, Ui};
 
+use crate::app::history::{EditHistory, EditHistoryEntry};
 use crate::audio::{AudioData, AudioPlayer};
 use crate::events::SpectralEvent;
 use crate::metronome::{MetronomeState, metronome_thread};
@@ -13,6 +14,7 @@ use crate::spectrogram::{CachedSpectrogram, Spectrogram};
 use crate::timing::TimingPoint;
 use crate::widgets::timeline::Timeline;
 
+mod history;
 mod layout;
 mod spectrogram;
 mod timing;
@@ -28,6 +30,7 @@ pub struct SpectralApp {
 	audio_player: AudioPlayer,
 	_metronome: JoinHandle<()>,
 
+	history: EditHistory,
 	settings: Arc<SettingsManager>,
 
 	event_rx: Receiver<SpectralEvent>,
@@ -49,6 +52,7 @@ pub struct SpectralApp {
 	timing_mode: TimingMode,
 
 	timing_points: Arc<RwLock<Vec<TimingPoint>>>,
+	edited_timing_point: Option<TimingPoint>,
 }
 
 impl SpectralApp {
@@ -75,6 +79,7 @@ impl SpectralApp {
 			audio_player,
 			_metronome,
 
+			history: EditHistory::default(),
 			settings,
 
 			event_rx,
@@ -96,6 +101,7 @@ impl SpectralApp {
 			timing_mode: TimingMode::Idle,
 
 			timing_points,
+			edited_timing_point: None,
 		}
 	}
 
@@ -199,6 +205,7 @@ impl SpectralApp {
 
 						let offset = start.min(click_ms).round();
 						let tp = TimingPoint::new(offset, bpm);
+						self.history.push(EditHistoryEntry::CreateTimingPoint(tp));
 						self.timing_points.write().unwrap().push(tp);
 						self.sort_timing_points();
 
@@ -245,6 +252,26 @@ impl eframe::App for SpectralApp {
 
 		if ctx.input(|i| i.key_pressed(egui::Key::Escape)) {
 			self.timing_mode = TimingMode::Idle;
+		}
+
+		if ctx.input_mut(|i| {
+			i.consume_shortcut(&egui::KeyboardShortcut::new(
+				egui::Modifiers::CTRL,
+				egui::Key::Z,
+			))
+		}) && let Some(entry) = self.history.undo()
+		{
+			self.undo(entry);
+		}
+
+		if ctx.input_mut(|i| {
+			i.consume_shortcut(&egui::KeyboardShortcut::new(
+				egui::Modifiers::CTRL,
+				egui::Key::Y,
+			))
+		}) && let Some(entry) = self.history.redo()
+		{
+			self.redo(entry);
 		}
 
 		if self.audio_player.is_playing() {
