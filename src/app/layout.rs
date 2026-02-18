@@ -389,7 +389,7 @@ impl SpectralApp {
 				("drag with Mouse Wheel", true),
 				(" to move the timeline\n"),
 
-				("Alt+Scroll", true),
+				("Ctrl+Scroll", true),
 				(" to zoom in/out\n"),
 
 				("Click", true),

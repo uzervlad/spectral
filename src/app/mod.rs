@@ -154,23 +154,21 @@ impl SpectralApp {
 
 		if response.hovered() {
 			let scroll_delta = ui.input(|i| i.smooth_scroll_delta);
-			let alt_held = ui.input(|i| i.modifiers.alt);
+			let zoom_delta = ui.input(|i| i.zoom_delta());
 
-			if scroll_delta.y.abs() > 0. {
-				if alt_held {
-					if let Some(pos) = mouse_pos {
-						let focus = self.timeline.x_to_ms(pos.x, rect);
-						self.timeline
-							.zoom(scroll_delta.y as f64, focus, duration, rect.width());
-					}
-				} else {
-					let scroll_speed = 1.0;
-					self.timeline.scroll(
-						-scroll_delta.y as f64 * scroll_speed,
-						duration,
-						rect.width(),
-					);
+			if zoom_delta.abs() > 0. {
+				if let Some(pos) = mouse_pos {
+					let focus = self.timeline.x_to_ms(pos.x, rect);
+					self.timeline
+						.zoom(zoom_delta as f64, focus, duration, rect.width());
 				}
+			} else if scroll_delta.y.abs() > 0. {
+				let scroll_speed = 1.0;
+				self.timeline.scroll(
+					-scroll_delta.y as f64 * scroll_speed,
+					duration,
+					rect.width(),
+				);
 			}
 
 			self.hover_ms = mouse_pos.map(|p| self.timeline.x_to_ms(p.x, rect));

@@ -9,7 +9,7 @@ Please send in any feature suggestions or bug reports through **issues**.
 - [x] Save settings/state between sessions
 - [x] Edit history (<kbd>^Z</kbd> / <kbd>^Y</kbd>)
 - [x] Lock cursor onto nearby ticks
-- [ ] Zooming with Ctrl (currently uses Alt)
+- [x] Zooming with Ctrl (currently uses Alt)
 - [x] Timeline scrollbar
 - [ ] App icon
 

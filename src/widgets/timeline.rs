@@ -62,8 +62,8 @@ impl Timeline {
 		let min_ln = min_pps.ln();
 		let max_ln = max_pps.ln();
 
-		let zoom_speed = 0.002;
-		let new_ln = (current_ln + delta * zoom_speed).clamp(min_ln, max_ln);
+		let zoom_speed = 0.12;
+		let new_ln = (current_ln * delta.powf(zoom_speed)).clamp(min_ln, max_ln);
 
 		let old_pps = self.pixels_per_second;
 		self.pixels_per_second = new_ln.exp();
