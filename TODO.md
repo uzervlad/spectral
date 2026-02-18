@@ -11,7 +11,7 @@ Please send in any feature suggestions or bug reports through **issues**.
 - [x] Lock cursor onto nearby ticks
 - [x] Zooming with Ctrl (currently uses Alt)
 - [x] Timeline scrollbar
-- [ ] App icon
+- [x] App icon
 
 ### Optional
 
