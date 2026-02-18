@@ -251,6 +251,29 @@ impl SpectralApp {
 			return;
 		};
 
+		let playhead_x = rect.left()
+			+ (self.audio_player.get_position_ms() / audio_data.duration) as f32 * rect.width();
+
+		painter.line_segment(
+			[
+				Pos2::new(playhead_x, rect.top()),
+				Pos2::new(playhead_x, rect.bottom()),
+			],
+			Stroke::new(1., COLOR_PLAYHEAD),
+		);
+
+		for tp in self.timing_points.read().unwrap().iter() {
+			let tp_x = rect.left() + (tp.offset / audio_data.duration) as f32 * rect.width();
+
+			painter.line_segment(
+				[
+					Pos2::new(tp_x, rect.top()),
+					Pos2::new(tp_x, rect.bottom()),
+				],
+				Stroke::new(1., COLOR_TIMING_POINT),
+			);
+		}
+
 		let (start, end) = self.timeline.visible_range(rect.width());
 
 		let start = start / audio_data.duration;

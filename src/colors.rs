@@ -19,10 +19,10 @@ pub const COLOR_CURSOR: Color32 = Color32::from_gray(170);
 pub const COLOR_PLAYHEAD: Color32 = Color32::from_rgb(102, 255, 204);
 
 pub const COLOR_SCROLL: Color32 = Color32::from_gray(40);
-pub const COLOR_SCROLL_THUMB: Color32 = Color32::from_gray(55);
-pub const COLOR_SCROLL_THUMB_HOVER: Color32 = Color32::from_gray(65);
-pub const COLOR_SCROLL_OUTLINE: Color32 = Color32::from_gray(70);
-pub const COLOR_SCROLL_OUTLINE_HOVER: Color32 = Color32::from_gray(80);
+pub const COLOR_SCROLL_THUMB: Color32 = Color32::from_rgba_premultiplied(55, 55, 55, 55);
+pub const COLOR_SCROLL_THUMB_HOVER: Color32 = Color32::from_rgba_premultiplied(65, 65, 65, 65);
+pub const COLOR_SCROLL_OUTLINE: Color32 = Color32::from_rgba_premultiplied(70, 70, 70, 70);
+pub const COLOR_SCROLL_OUTLINE_HOVER: Color32 = Color32::from_rgba_premultiplied(80, 80, 80, 80);
 
 pub const COLOR_TIMING_POINT_TEMPORARY: Color32 = Color32::CYAN;
 pub const COLOR_TIMING_POINT: Color32 = Color32::GOLD;
