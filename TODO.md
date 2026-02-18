@@ -7,7 +7,7 @@ Please send in any feature suggestions or bug reports through **issues**.
 ### Required
 
 - [x] Save settings/state between sessions
-- [ ] Edit history (<kbd>^Z</kbd> / <kbd>^Y</kbd>)
+- [x] Edit history (<kbd>^Z</kbd> / <kbd>^Y</kbd>)
 - [x] Lock cursor onto nearby ticks
 - [ ] Zooming with Ctrl (currently uses Alt)
 - [x] Timeline scrollbar
