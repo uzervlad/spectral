@@ -29,7 +29,12 @@ impl TimeInput {
 			if response.lost_focus()
 				|| ui.input(|i| i.key_pressed(egui::Key::Enter) || i.key_pressed(egui::Key::Escape))
 			{
-				ui.memory_mut(|m| m.data.remove_temp::<bool>(id));
+				ui.memory_mut(|m| {
+					m.data.remove_temp::<bool>(id);
+					// for some reason the input state doesn't reset by itself
+					// this causes inconsistencies when undo/redo-ind
+					m.data.remove::<String>(response.id);
+				});
 			}
 
 			response
