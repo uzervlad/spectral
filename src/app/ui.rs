@@ -224,13 +224,13 @@ impl SpectralApp {
 			let x = self.timeline.ms_to_x(tick_ms, rect);
 
 			if x >= rect.left() && x <= rect.right() {
-				if self.snap_to_tick {
-					if let Some(mx) = mouse_x {
-						let dist = (x - mx).abs();
-						if dist < closest_dist {
-							closest_dist = dist;
-							self.snap_ms = Some(tick_ms);
-						}
+				if self.snap_to_tick
+					&& let Some(mx) = mouse_x
+				{
+					let dist = (x - mx).abs();
+					if dist < closest_dist {
+						closest_dist = dist;
+						self.snap_ms = Some(tick_ms);
 					}
 				}
 

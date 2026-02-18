@@ -6,8 +6,8 @@ use rodio::{Decoder, Source as _};
 
 use crate::metronome::ClickType;
 
-const METRONOME_DOWNBEAT: &'static [u8] = include_bytes!("../assets/metronome-tick-downbeat.wav");
-const METRONOME_BEAT: &'static [u8] = include_bytes!("../assets/metronome-tick.wav");
+const METRONOME_DOWNBEAT: &[u8] = include_bytes!("../assets/metronome-tick-downbeat.wav");
+const METRONOME_BEAT: &[u8] = include_bytes!("../assets/metronome-tick.wav");
 
 pub struct MetronomeSamples {
 	pub downbeat: Arc<Vec<f32>>,

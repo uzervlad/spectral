@@ -15,8 +15,8 @@ impl SpectralApp {
 
 		let (vis_start, vis_end) = self.timeline.visible_range(width as _);
 
-		if let Some(cached) = &self.cached_spectrogram {
-			if cached.is_valid(
+		if let Some(cached) = &self.cached_spectrogram
+			&& cached.is_valid(
 				vis_start,
 				vis_end,
 				self.fft_size,
@@ -24,8 +24,7 @@ impl SpectralApp {
 				self.max_db,
 				width,
 			) {
-				return Some(cached.texture.clone());
-			}
+			return Some(cached.texture.clone());
 		}
 
 		if self.fft_size != self.spectrogram.fft_size {

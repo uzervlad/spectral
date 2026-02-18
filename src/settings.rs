@@ -42,7 +42,7 @@ impl Settings {
 		let mut settings: Self = fs::read(&_save_path)
 			.ok()
 			.and_then(|content| serde_json::from_slice(&content).ok())
-			.unwrap_or_else(|| Self::default());
+			.unwrap_or_default();
 
 		settings._save_path = _save_path;
 		settings
@@ -53,9 +53,11 @@ impl Settings {
 	}
 }
 
+type SettingsWriteCallback = dyn FnOnce(&mut Settings) + Send + 'static;
+
 fn settings_store_listener(
 	settings: Arc<RwLock<Settings>>,
-	rx: Receiver<Box<dyn FnOnce(&mut Settings) + Send + 'static>>,
+	rx: Receiver<Box<SettingsWriteCallback>>,
 ) {
 	let save_delay = Duration::from_secs(2);
 	let mut last_change = Instant::now();
@@ -101,7 +103,7 @@ fn settings_store_listener(
 
 pub struct SettingsManager {
 	settings: Arc<RwLock<Settings>>,
-	tx: Sender<Box<dyn FnOnce(&mut Settings) + Send + 'static>>,
+	tx: Sender<Box<SettingsWriteCallback>>,
 }
 
 impl SettingsManager {
