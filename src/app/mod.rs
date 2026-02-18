@@ -205,8 +205,7 @@ impl SpectralApp {
 
 						let offset = start.min(click_ms);
 						let tp = TimingPoint::new(offset, bpm);
-						self.history
-							.push(EditHistoryEntry::CreateTimingPoint(tp.clone()));
+						self.history.push(EditHistoryEntry::CreateTimingPoint(tp));
 						self.timing_points.write().unwrap().push(tp);
 						self.sort_timing_points();
 
@@ -260,10 +259,9 @@ impl eframe::App for SpectralApp {
 				egui::Modifiers::CTRL,
 				egui::Key::Z,
 			))
-		}) {
-			if let Some(entry) = self.history.undo() {
-				self.undo(entry);
-			}
+		}) && let Some(entry) = self.history.undo()
+		{
+			self.undo(entry);
 		}
 
 		if ctx.input_mut(|i| {
@@ -271,10 +269,9 @@ impl eframe::App for SpectralApp {
 				egui::Modifiers::CTRL,
 				egui::Key::Y,
 			))
-		}) {
-			if let Some(entry) = self.history.redo() {
-				self.redo(entry);
-			}
+		}) && let Some(entry) = self.history.redo()
+		{
+			self.redo(entry);
 		}
 
 		if self.audio_player.is_playing() {

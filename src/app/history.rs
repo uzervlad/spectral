@@ -1,8 +1,11 @@
+use std::fmt::Display;
+
 use crate::app::SpectralApp;
 use crate::timing::TimingPoint;
 
 const MAX_HISTORY_CAPACITY: usize = 200;
 
+#[allow(clippy::enum_variant_names)]
 #[derive(Clone, Copy)]
 pub enum EditHistoryEntry {
 	CreateTimingPoint(TimingPoint),
@@ -13,18 +16,19 @@ pub enum EditHistoryEntry {
 	},
 }
 
-impl ToString for EditHistoryEntry {
-	fn to_string(&self) -> String {
+impl Display for EditHistoryEntry {
+	fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
 		match self {
-			Self::CreateTimingPoint(_) => "Create timing point".into(),
-			Self::DeleteTimingPoint(_) => "Delete timing point".into(),
+			Self::CreateTimingPoint(_) => write!(f, "Create timing point"),
+			Self::DeleteTimingPoint(_) => write!(f, "Delete timing point"),
 			Self::ModifyTimingPoint { before, after } => {
 				if before.bpm != after.bpm {
-					format!("Change BPM {:.02} -> {:.02}", before.bpm, after.bpm)
+					write!(f, "Change BPM {:.02} -> {:.02}", before.bpm, after.bpm)
 				} else if before.offset != after.offset {
-					format!("Change offset {} -> {}", before.offset, after.offset)
+					write!(f, "Change offset {} -> {}", before.offset, after.offset)
 				} else {
-					format!(
+					write!(
+						f,
 						"Change signature {}/{} -> {}/{}",
 						before.signature.0,
 						before.signature.1,
@@ -94,7 +98,7 @@ impl SpectralApp {
 					.retain(|tp| created_tp.id() != tp.id());
 			},
 			EditHistoryEntry::DeleteTimingPoint(deleted_tp) => {
-				self.timing_points.write().unwrap().push(deleted_tp.clone());
+				self.timing_points.write().unwrap().push(deleted_tp);
 				self.sort_timing_points();
 			},
 			EditHistoryEntry::ModifyTimingPoint { before, after } => {
@@ -105,7 +109,7 @@ impl SpectralApp {
 					.iter_mut()
 					.find(|tp| tp.id() == after.id())
 				{
-					*tp = before.clone();
+					*tp = before;
 				}
 			},
 		}
@@ -114,7 +118,7 @@ impl SpectralApp {
 	pub fn redo(&mut self, entry: EditHistoryEntry) {
 		match entry {
 			EditHistoryEntry::CreateTimingPoint(created_tp) => {
-				self.timing_points.write().unwrap().push(created_tp.clone());
+				self.timing_points.write().unwrap().push(created_tp);
 				self.sort_timing_points();
 			},
 			EditHistoryEntry::DeleteTimingPoint(deleted_tp) => {
@@ -131,7 +135,7 @@ impl SpectralApp {
 					.iter_mut()
 					.find(|tp| tp.id() == before.id())
 				{
-					*tp = after.clone();
+					*tp = after;
 				}
 			},
 		}

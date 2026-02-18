@@ -31,20 +31,16 @@ impl SpectralApp {
 
 				if ui
 					.add_enabled(self.history.can_undo(), egui::Button::new("Undo"))
-					.clicked()
+					.clicked() && let Some(entry) = self.history.undo()
 				{
-					if let Some(entry) = self.history.undo() {
-						self.undo(entry);
-					}
+					self.undo(entry);
 				}
 
 				if ui
 					.add_enabled(self.history.can_redo(), egui::Button::new("Redo"))
-					.clicked()
+					.clicked() && let Some(entry) = self.history.redo()
 				{
-					if let Some(entry) = self.history.redo() {
-						self.redo(entry);
-					}
+					self.redo(entry);
 				}
 
 				ui.separator();
@@ -252,9 +248,8 @@ impl SpectralApp {
 
 					if let Some(idx) = timing_point_delete {
 						let mut timing_points = self.timing_points.write().unwrap();
-						self.history.push(EditHistoryEntry::DeleteTimingPoint(
-							timing_points[idx].clone(),
-						));
+						self.history
+							.push(EditHistoryEntry::DeleteTimingPoint(timing_points[idx]));
 						timing_points.remove(idx);
 					}
 
