@@ -52,6 +52,7 @@ pub struct SpectralApp {
 	timing_mode: TimingMode,
 
 	timing_points: Arc<RwLock<Vec<TimingPoint>>>,
+	edited_timing_point: Option<TimingPoint>,
 }
 
 impl SpectralApp {
@@ -100,6 +101,7 @@ impl SpectralApp {
 			timing_mode: TimingMode::Idle,
 
 			timing_points,
+			edited_timing_point: None,
 		}
 	}
 

@@ -1,6 +1,6 @@
 use egui::Color32;
 
-#[derive(Clone, Copy)]
+#[derive(Clone, Copy, PartialEq)]
 pub struct TimingPoint {
 	id: egui::Id,
 	pub offset: f64,

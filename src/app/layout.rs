@@ -152,29 +152,78 @@ impl SpectralApp {
 									ui.label("@");
 
 									let id = timing_point.id();
-									resort_timing_points |=
-										TimeInput::ui(ui, &mut timing_point.offset, id);
+									let mut offset = timing_point.offset;
+									let response = TimeInput::ui(ui, &mut offset, id);
+
+									if response.changed() || response.dragged() {
+										resort_timing_points = true;
+										if self.edited_timing_point.is_none() {
+											self.edited_timing_point = Some(*timing_point);
+										}
+										timing_point.offset = offset;
+									}
+
+									if let Some(before) = self.edited_timing_point
+										&& (response.drag_stopped() || response.lost_focus())
+									{
+										if before != *timing_point {
+											self.history.push(EditHistoryEntry::ModifyTimingPoint { before, after: *timing_point });
+										}
+										self.edited_timing_point = None;
+									}
 								});
 
 								ui.horizontal(|ui| {
 									ui.label("BPM:");
-									ui.add(
-										egui::DragValue::new(&mut timing_point.bpm)
+
+									let mut bpm = timing_point.bpm;
+									let response = ui.add(
+										egui::DragValue::new(&mut bpm)
 											.speed(0.01)
 											.range(1.0..=999.0)
 											.suffix("BPM"),
 									);
+
+									if response.changed() {
+										if self.edited_timing_point.is_none() {
+											self.edited_timing_point = Some(*timing_point);
+										}
+										timing_point.bpm = bpm;
+									}
+
+									if let Some(before) = self.edited_timing_point
+										&& (response.drag_stopped() || response.lost_focus())
+									{
+										if before != *timing_point {
+											self.history.push(EditHistoryEntry::ModifyTimingPoint { before, after: *timing_point });
+										}
+										self.edited_timing_point = None;
+									}
 								});
 
 								ui.horizontal(|ui| {
 									ui.label("Signature:");
 									let (mut n, mut m) = timing_point.signature;
 
-									ui.add(egui::DragValue::new(&mut n).range(1..=16));
+									let n_response = ui.add(egui::DragValue::new(&mut n).range(1..=16));
 									ui.label("/");
-									ui.add(egui::DragValue::new(&mut m).range(1..=16));
+									let _m_response = ui.add(egui::DragValue::new(&mut m).range(1..=16));
 
-									timing_point.signature = (n, m);
+									if n_response.changed() {
+										if self.edited_timing_point.is_none() {
+											self.edited_timing_point = Some(*timing_point);
+										}
+										timing_point.signature = (n, m);
+									}
+
+									if let Some(before) = self.edited_timing_point
+										&& (n_response.drag_stopped() || n_response.lost_focus())
+									{
+										if before != *timing_point {
+											self.history.push(EditHistoryEntry::ModifyTimingPoint { before, after: *timing_point });
+										}
+										self.edited_timing_point = None;
+									}
 								});
 							});
 						});
