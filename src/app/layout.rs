@@ -169,7 +169,6 @@ impl SpectralApp {
 									let response = TimeInput::ui(ui, &mut offset, id);
 
 									if response.changed() || response.dragged() {
-										resort_timing_points = true;
 										if self.edited_timing_point.is_none() {
 											self.edited_timing_point = Some(*timing_point);
 										}
@@ -179,6 +178,7 @@ impl SpectralApp {
 									if let Some(before) = self.edited_timing_point
 										&& (response.drag_stopped() || response.lost_focus())
 									{
+										resort_timing_points = true;
 										if before != *timing_point {
 											self.history.push(
 												EditHistoryEntry::ModifyTimingPoint {
