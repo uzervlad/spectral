@@ -29,7 +29,8 @@ impl SpectralApp {
 
 				ui.separator();
 
-				if ui.add_enabled(self.history.can_undo(), egui::Button::new("Undo"))
+				if ui
+					.add_enabled(self.history.can_undo(), egui::Button::new("Undo"))
 					.clicked()
 				{
 					if let Some(entry) = self.history.undo() {
@@ -37,7 +38,8 @@ impl SpectralApp {
 					}
 				}
 
-				if ui.add_enabled(self.history.can_redo(), egui::Button::new("Redo"))
+				if ui
+					.add_enabled(self.history.can_redo(), egui::Button::new("Redo"))
 					.clicked()
 				{
 					if let Some(entry) = self.history.redo() {
@@ -167,7 +169,12 @@ impl SpectralApp {
 										&& (response.drag_stopped() || response.lost_focus())
 									{
 										if before != *timing_point {
-											self.history.push(EditHistoryEntry::ModifyTimingPoint { before, after: *timing_point });
+											self.history.push(
+												EditHistoryEntry::ModifyTimingPoint {
+													before,
+													after: *timing_point,
+												},
+											);
 										}
 										self.edited_timing_point = None;
 									}
@@ -195,7 +202,12 @@ impl SpectralApp {
 										&& (response.drag_stopped() || response.lost_focus())
 									{
 										if before != *timing_point {
-											self.history.push(EditHistoryEntry::ModifyTimingPoint { before, after: *timing_point });
+											self.history.push(
+												EditHistoryEntry::ModifyTimingPoint {
+													before,
+													after: *timing_point,
+												},
+											);
 										}
 										self.edited_timing_point = None;
 									}
@@ -205,9 +217,11 @@ impl SpectralApp {
 									ui.label("Signature:");
 									let (mut n, mut m) = timing_point.signature;
 
-									let n_response = ui.add(egui::DragValue::new(&mut n).range(1..=16));
+									let n_response =
+										ui.add(egui::DragValue::new(&mut n).range(1..=16));
 									ui.label("/");
-									let _m_response = ui.add(egui::DragValue::new(&mut m).range(1..=16));
+									let _m_response =
+										ui.add(egui::DragValue::new(&mut m).range(1..=16));
 
 									if n_response.changed() {
 										if self.edited_timing_point.is_none() {
@@ -220,7 +234,12 @@ impl SpectralApp {
 										&& (n_response.drag_stopped() || n_response.lost_focus())
 									{
 										if before != *timing_point {
-											self.history.push(EditHistoryEntry::ModifyTimingPoint { before, after: *timing_point });
+											self.history.push(
+												EditHistoryEntry::ModifyTimingPoint {
+													before,
+													after: *timing_point,
+												},
+											);
 										}
 										self.edited_timing_point = None;
 									}
@@ -233,7 +252,9 @@ impl SpectralApp {
 
 					if let Some(idx) = timing_point_delete {
 						let mut timing_points = self.timing_points.write().unwrap();
-						self.history.push(EditHistoryEntry::DeleteTimingPoint(timing_points[idx].clone()));
+						self.history.push(EditHistoryEntry::DeleteTimingPoint(
+							timing_points[idx].clone(),
+						));
 						timing_points.remove(idx);
 					}
 

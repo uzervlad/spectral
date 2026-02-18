@@ -1,4 +1,5 @@
-use crate::{app::SpectralApp, timing::TimingPoint};
+use crate::app::SpectralApp;
+use crate::timing::TimingPoint;
 
 const MAX_HISTORY_CAPACITY: usize = 200;
 
@@ -23,9 +24,15 @@ impl ToString for EditHistoryEntry {
 				} else if before.offset != after.offset {
 					format!("Change offset {} -> {}", before.offset, after.offset)
 				} else {
-					format!("Change signature {}/{} -> {}/{}", before.signature.0, before.signature.1, after.signature.0, after.signature.1)
+					format!(
+						"Change signature {}/{} -> {}/{}",
+						before.signature.0,
+						before.signature.1,
+						after.signature.0,
+						after.signature.1
+					)
 				}
-			}
+			},
 		}
 	}
 }
@@ -43,7 +50,8 @@ impl EditHistory {
 		self.changes.push(entry);
 
 		if self.changes.len() > MAX_HISTORY_CAPACITY {
-			self.changes.drain(0..self.changes.len() - MAX_HISTORY_CAPACITY);
+			self.changes
+				.drain(0..self.changes.len() - MAX_HISTORY_CAPACITY);
 		}
 
 		self.cursor = self.changes.len();
@@ -80,14 +88,20 @@ impl SpectralApp {
 	pub fn undo(&mut self, entry: EditHistoryEntry) {
 		match entry {
 			EditHistoryEntry::CreateTimingPoint(created_tp) => {
-				self.timing_points.write().unwrap().retain(|tp| created_tp.id() != tp.id());
+				self.timing_points
+					.write()
+					.unwrap()
+					.retain(|tp| created_tp.id() != tp.id());
 			},
 			EditHistoryEntry::DeleteTimingPoint(deleted_tp) => {
 				self.timing_points.write().unwrap().push(deleted_tp.clone());
 				self.sort_timing_points();
 			},
 			EditHistoryEntry::ModifyTimingPoint { before, after } => {
-				if let Some(tp) = self.timing_points.write().unwrap()
+				if let Some(tp) = self
+					.timing_points
+					.write()
+					.unwrap()
 					.iter_mut()
 					.find(|tp| tp.id() == after.id())
 				{
@@ -104,10 +118,16 @@ impl SpectralApp {
 				self.sort_timing_points();
 			},
 			EditHistoryEntry::DeleteTimingPoint(deleted_tp) => {
-				self.timing_points.write().unwrap().retain(|tp| deleted_tp.id() != tp.id());
+				self.timing_points
+					.write()
+					.unwrap()
+					.retain(|tp| deleted_tp.id() != tp.id());
 			},
 			EditHistoryEntry::ModifyTimingPoint { before, after } => {
-				if let Some(tp) = self.timing_points.write().unwrap()
+				if let Some(tp) = self
+					.timing_points
+					.write()
+					.unwrap()
 					.iter_mut()
 					.find(|tp| tp.id() == before.id())
 				{
