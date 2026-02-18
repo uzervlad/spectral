@@ -156,7 +156,7 @@ impl SpectralApp {
 			let scroll_delta = ui.input(|i| i.smooth_scroll_delta);
 			let zoom_delta = ui.input(|i| i.zoom_delta());
 
-			if zoom_delta.abs() > 0. {
+			if zoom_delta != 1. {
 				if let Some(pos) = mouse_pos {
 					let focus = self.timeline.x_to_ms(pos.x, rect);
 					self.timeline
