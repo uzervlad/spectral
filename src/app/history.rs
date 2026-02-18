@@ -74,6 +74,10 @@ impl EditHistory {
 		}
 	}
 
+	pub fn peek_undo(&self) -> Option<EditHistoryEntry> {
+		self.changes.get(self.cursor - 1).copied()
+	}
+
 	pub fn can_redo(&mut self) -> bool {
 		self.cursor < self.changes.len()
 	}
@@ -85,6 +89,10 @@ impl EditHistory {
 			self.cursor += 1;
 			self.changes.get(self.cursor - 1).copied()
 		}
+	}
+
+	pub fn peek_redo(&self) -> Option<EditHistoryEntry> {
+		self.changes.get(self.cursor).copied()
 	}
 }
 
