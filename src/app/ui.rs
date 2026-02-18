@@ -1,4 +1,4 @@
-use egui::{Color32, Pos2, Rect, Stroke, Ui};
+use egui::{Color32, Pos2, Rect, Sense, Stroke, StrokeKind, Ui};
 
 use crate::app::{SpectralApp, TimingMode};
 use crate::util::format_time;
@@ -244,6 +244,54 @@ impl SpectralApp {
 					Stroke::new(snap.width(), snap.color()),
 				);
 			}
+		}
+	}
+
+	pub fn draw_scrollbar(&mut self, ui: &mut Ui, rect: Rect) {
+		let bar_response = ui.allocate_rect(rect, Sense::click());
+
+		let painter = ui.painter_at(rect);
+		painter.rect_filled(rect, 0., Color32::from_gray(40));
+
+		let Some(ref audio_data) = self.audio_data else {
+			return;
+		};
+
+		let (start, end) = self.timeline.visible_range(rect.width());
+
+		let start = start / audio_data.duration;
+		let end = end / audio_data.duration;
+
+		let thumb_rect = Rect::from_min_max(
+			Pos2::new(rect.left() + rect.width() * start as f32, rect.top()),
+			Pos2::new(rect.left() + rect.width() * end as f32, rect.bottom()),
+		);
+
+		let thumb_response = ui.allocate_rect(thumb_rect, Sense::drag());
+
+		painter.rect(
+			thumb_rect,
+			0.,
+			Color32::from_gray(if thumb_response.hovered() { 65 } else { 55 }),
+			Stroke::new(
+				1.,
+				Color32::from_gray(if thumb_response.hovered() { 80 } else { 70 }),
+			),
+			StrokeKind::Inside,
+		);
+
+		if thumb_response.dragged() {
+			let delta_pixels = thumb_response.drag_delta().x as f64;
+			let delta_ms = delta_pixels * audio_data.duration / rect.width() as f64;
+			self.timeline.scroll_ms(delta_ms, audio_data.duration, rect.width());
+		}
+
+		if bar_response.clicked()
+			&& !thumb_response.hovered()
+			&& let Some(pos) = bar_response.interact_pointer_pos()
+		{
+			let clicked_ms = ((pos.x - rect.left()) / rect.width()) as f64 * audio_data.duration;
+			self.timeline.scroll_to(clicked_ms, audio_data.duration, rect.width());
 		}
 	}
 }

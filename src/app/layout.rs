@@ -180,7 +180,8 @@ impl SpectralApp {
 
 			let ruler_height = 28.;
 			let freq_axis_width = 40.;
-			let timeline_height = (ui.available_height() - 80.).clamp(150., 600.);
+			let timeline_height = (ui.available_height() - 130.).clamp(150., 600.);
+			let scrollbar_height = 20.;
 
 			let ruler_rect = Rect::from_min_size(
 				Pos2::new(available.left() + freq_axis_width, available.top()),
@@ -202,10 +203,17 @@ impl SpectralApp {
 				Pos2::new(available.max.x, available.top() + timeline_height),
 			);
 
+			let scrollbar_rect = Rect::from_min_size(
+				Pos2::new(available.left() + freq_axis_width, timeline_rect.bottom()),
+				Vec2::new(timeline_rect.width(), scrollbar_height),
+			);
+
 			let timeline_response = ui.allocate_rect(timeline_rect, Sense::click_and_drag());
 			self.handle_timeline_input(ui, timeline_rect, &timeline_response);
 
 			self.draw_timeline(ui, timeline_rect);
+
+			self.draw_scrollbar(ui, scrollbar_rect);
 
 			ui.separator();
 

@@ -10,7 +10,7 @@ Please send in any feature suggestions or bug reports through **issues**.
 - [ ] Edit history (<kbd>^Z</kbd> / <kbd>^Y</kbd>)
 - [x] Lock cursor onto nearby ticks
 - [ ] Zooming with Ctrl (currently uses Alt)
-- [ ] Timeline scrollbar
+- [x] Timeline scrollbar
 - [ ] App icon
 
 ### Optional

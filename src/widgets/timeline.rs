@@ -36,10 +36,22 @@ impl Timeline {
 		(start, end)
 	}
 
+	fn max_scroll(&self, duration: f64, width: f32) -> f64 {
+		(duration - width as f64 / self.pixels_per_ms()).max(0.)
+	}
+
 	pub fn scroll(&mut self, delta: f64, duration: f64, width: f32) {
 		let delta = delta / self.pixels_per_ms();
-		let max_scroll = (duration - width as f64 / self.pixels_per_ms()).max(0.);
-		self.offset = (self.offset + delta).clamp(0., max_scroll);
+		self.offset = (self.offset + delta).clamp(0., self.max_scroll(duration, width));
+	}
+
+	pub fn scroll_ms(&mut self, delta: f64, duration: f64, width: f32) {
+		self.offset = (self.offset + delta).clamp(0., self.max_scroll(duration, width));
+	}
+
+	pub fn scroll_to(&mut self, ms: f64, duration: f64, width: f32) {
+		let visible_duration = width as f64 / self.pixels_per_ms();
+		self.offset = (ms - visible_duration / 2.).clamp(0., self.max_scroll(duration, width));
 	}
 
 	pub fn zoom(&mut self, delta: f64, focus: f64, duration: f64, width: f32) {
