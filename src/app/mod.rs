@@ -1,4 +1,6 @@
+use std::env::args;
 use std::path::PathBuf;
+use std::str::FromStr;
 use std::sync::mpsc::{self, Receiver, Sender};
 use std::sync::{Arc, RwLock};
 use std::thread::{self, JoinHandle};
@@ -75,7 +77,7 @@ impl SpectralApp {
 			metronome_thread(state, sink, _tp);
 		});
 
-		Self {
+		let mut _self = Self {
 			audio_data: None,
 			audio_player,
 			audio_loading: false,
@@ -104,7 +106,16 @@ impl SpectralApp {
 
 			timing_points,
 			edited_timing_point: None,
+		};
+
+		if let Some(arg) = args().nth(1)
+			&& let Ok(path) = PathBuf::from_str(&arg)
+			&& path.exists()
+		{
+			_self.load_audio(path);
 		}
+
+		_self
 	}
 
 	fn handle_event(&mut self, event: SpectralEvent) {
