@@ -1,3 +1,5 @@
+#![windows_subsystem = "windows"]
+
 use egui::IconData;
 use spectral::app::SpectralApp;
 
