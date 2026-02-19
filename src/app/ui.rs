@@ -92,12 +92,23 @@ impl SpectralApp {
 	pub fn draw_timeline(&mut self, ui: &mut Ui, rect: Rect) {
 		self.draw_spectrogram(ui, rect);
 
-		let _painter = ui.painter_at(rect);
+		let painter = ui.painter_at(rect);
 
 		self.draw_beat_ticks(ui, rect);
 		self.draw_timing_points(ui, rect);
 		self.draw_playhead(ui, rect);
 		self.draw_cursor(ui, rect);
+
+		if self.audio_loading {
+			painter.rect_filled(rect, 0., Color32::from_rgba_premultiplied(0, 0, 0, 120));
+			painter.text(
+				rect.center(),
+				egui::Align2::CENTER_CENTER,
+				"Loading audio...",
+				egui::FontId::proportional(14.),
+				Color32::WHITE,
+			);
+		}
 	}
 
 	pub fn draw_spectrogram(&mut self, ui: &mut Ui, rect: Rect) {

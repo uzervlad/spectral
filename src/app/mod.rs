@@ -1,4 +1,4 @@
-use std::path::Path;
+use std::path::PathBuf;
 use std::sync::mpsc::{self, Receiver, Sender};
 use std::sync::{Arc, RwLock};
 use std::thread::{self, JoinHandle};
@@ -28,6 +28,7 @@ enum TimingMode {
 pub struct SpectralApp {
 	audio_data: Option<AudioData>,
 	audio_player: AudioPlayer,
+	audio_loading: bool,
 	_metronome: JoinHandle<()>,
 
 	history: EditHistory,
@@ -77,6 +78,7 @@ impl SpectralApp {
 		Self {
 			audio_data: None,
 			audio_player,
+			audio_loading: false,
 			_metronome,
 
 			history: EditHistory::default(),
@@ -110,25 +112,35 @@ impl SpectralApp {
 			SpectralEvent::OpenAudio { path } => {
 				self.load_audio(path);
 			},
+			SpectralEvent::LoadAudio { data } => {
+				self.audio_loading = false;
+
+				match data {
+					Ok(data) => {
+						let _ = self.audio_player.load(&data);
+
+						self.audio_data = Some(data);
+						self.cached_spectrogram = None;
+						self.timing_points.write().unwrap().clear();
+						self.timeline.reset();
+					},
+					Err(e) => {
+						eprintln!("fuck {}", e);
+					},
+				}
+			},
 		}
 	}
 
-	fn load_audio<P: AsRef<Path>>(&mut self, path: P) {
+	fn load_audio(&mut self, path: PathBuf) {
 		self.audio_player.pause();
+		self.audio_loading = true;
 
-		match AudioData::load_from_file(path) {
-			Ok(data) => {
-				let _ = self.audio_player.load(&data);
-
-				self.audio_data = Some(data);
-				self.cached_spectrogram = None;
-				self.timing_points.write().unwrap().clear();
-				self.timeline.reset();
-			},
-			Err(e) => {
-				eprintln!("fuck {}", e);
-			},
-		}
+		let tx = self.event_tx.clone();
+		thread::spawn(move || {
+			let data = AudioData::load_from_file(path);
+			let _ = tx.send(SpectralEvent::LoadAudio { data });
+		});
 	}
 
 	fn request_open_audio(&self) {
@@ -144,6 +156,10 @@ impl SpectralApp {
 	}
 
 	fn handle_timeline_input(&mut self, ui: &mut Ui, rect: Rect, response: &egui::Response) {
+		if self.audio_loading {
+			return;
+		}
+
 		let duration = self
 			.audio_data
 			.as_ref()
