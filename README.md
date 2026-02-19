@@ -1,5 +1,9 @@
 # Spectral
 
+<p align="center">
+  <img src="./src/assets/spectral_128.png" />
+</p>
+
 **Spectral** is a utility for timing songs for use in rhythm games, using a spectrogram as a visual guide.
 
 > [!WARNING]
@@ -10,14 +14,16 @@
 <details>
 <summary>Screenshots</summary>
 
-![](/assets/screenshot.jpg)
+<p align="center">
+  <img src="./assets/screenshot.jpg" />
+</p>
 </details>
 
-### For users
+## For users
 
 You can download the latest release [here](https://github.com/uzervlad/spectral/releases/latest)
 
-### For developers
+## For developers
 
 #### Prerequisites
 
