@@ -101,7 +101,18 @@ impl SpectralApp {
 				ui.menu_button("Export", |ui| {
 					ui.set_min_width(200.);
 
-					for &fmt in ExportFormat::list() {
+					if ui.button(format!("{}", ExportFormat::Csv)).clicked() {
+						export_timing_points(
+							self.timing_points.read().unwrap().clone(),
+							ExportFormat::Csv,
+						);
+					}
+
+					ui.separator();
+
+					ui.heading("Game formats");
+
+					for &fmt in ExportFormat::game_formats() {
 						if ui.button(format!("{}", fmt)).clicked() {
 							export_timing_points(self.timing_points.read().unwrap().clone(), fmt);
 							ui.close();
