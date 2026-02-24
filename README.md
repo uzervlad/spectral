@@ -33,3 +33,8 @@ You can download the latest release [here](https://github.com/uzervlad/spectral/
 $ cargo run --release
 ```
 <sub>It is recommended to run in release mode, since spectrogram rendering can be incredibly slow</sub>
+
+## Credits
+
+* Metronome sounds from [osu-resources](https://github.com/ppy/osu-resources) • [`CC-BY-NC 4.0`](https://github.com/ppy/osu-resources/blob/master/LICENCE.md)
+* Spectrogram colormaps from [roseus](https://github.com/dofuuz/roseus) • [`MIT License`](https://github.com/dofuuz/roseus/blob/main/LICENSE.txt)
