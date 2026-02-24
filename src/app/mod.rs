@@ -8,6 +8,7 @@ use std::thread::{self, JoinHandle};
 use egui::{Rect, Ui};
 
 use crate::app::history::{EditHistory, EditHistoryEntry};
+use crate::app::modal::ResultModalData;
 use crate::audio::{AudioData, AudioPlayer};
 use crate::events::SpectralEvent;
 use crate::metronome::{MetronomeState, metronome_thread};
@@ -19,6 +20,7 @@ use crate::widgets::timeline::Timeline;
 
 mod history;
 mod layout;
+mod modal;
 mod spectrogram;
 mod timing;
 mod ui;
@@ -58,6 +60,8 @@ pub struct SpectralApp {
 
 	timing_points: Arc<RwLock<Vec<TimingPoint>>>,
 	edited_timing_point: Option<TimingPoint>,
+
+	result_data: Option<ResultModalData>,
 }
 
 impl SpectralApp {
@@ -110,6 +114,8 @@ impl SpectralApp {
 			edited_timing_point: None,
 
 			settings,
+
+			result_data: None,
 		};
 
 		if let Some(arg) = args().nth(1)
@@ -140,11 +146,23 @@ impl SpectralApp {
 						self.timeline.reset();
 					},
 					Err(e) => {
-						eprintln!("fuck {}", e);
+						self.set_result(format!("Error during audio loading: {:?}", e));
 					},
 				}
 			},
+			SpectralEvent::Export { error } => {
+				let message = match error {
+					Some(e) => format!("Error during export: {:?}", e),
+					None => "Exported successfully".into(),
+				};
+
+				self.set_result(message);
+			},
 		}
+	}
+
+	fn set_result(&mut self, result: String) {
+		self.result_data = Some(ResultModalData::new(rand::random(), result))
 	}
 
 	fn load_audio(&mut self, path: PathBuf) {
@@ -312,5 +330,7 @@ impl eframe::App for SpectralApp {
 		self.draw_top_panel(ctx);
 		self.draw_timing_points_panel(ctx);
 		self.draw_main_contents(ctx);
+
+		self.draw_result_modal(ctx);
 	}
 }

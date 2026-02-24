@@ -106,6 +106,7 @@ impl SpectralApp {
 						export_timing_points(
 							self.timing_points.read().unwrap().clone(),
 							ExportFormat::Csv,
+							self.event_tx.clone(),
 						);
 					}
 
@@ -115,7 +116,11 @@ impl SpectralApp {
 
 					for &fmt in ExportFormat::game_formats() {
 						if ui.button(format!("{}", fmt)).clicked() {
-							export_timing_points(self.timing_points.read().unwrap().clone(), fmt);
+							export_timing_points(
+								self.timing_points.read().unwrap().clone(),
+								fmt,
+								self.event_tx.clone(),
+							);
 							ui.close();
 						}
 					}
