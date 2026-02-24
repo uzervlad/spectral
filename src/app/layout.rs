@@ -206,6 +206,28 @@ impl SpectralApp {
 										}
 										self.edited_timing_point = None;
 									}
+
+									if ui
+										.small_button("<")
+										.on_hover_text("Move 1 beat earlier")
+										.clicked() && timing_point.offset
+										> timing_point.ms_per_beat()
+									{
+										timing_point.offset -= timing_point.ms_per_beat();
+									}
+
+									if ui
+										.small_button(">")
+										.on_hover_text("Move 1 beat later")
+										.clicked() && timing_point.offset
+										+ timing_point.ms_per_beat() < self
+										.audio_data
+										.as_ref()
+										.map(|d| d.duration)
+										.unwrap_or_default()
+									{
+										timing_point.offset += timing_point.ms_per_beat();
+									}
 								});
 
 								ui.horizontal(|ui| {
