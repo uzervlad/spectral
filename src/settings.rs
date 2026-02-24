@@ -7,13 +7,18 @@ use std::{fs, thread};
 
 use serde::{Deserialize, Serialize};
 
+use crate::spectrogram::colors::Colormap;
+
 #[derive(Serialize, Deserialize)]
+#[serde(default)]
 pub struct Settings {
-	#[serde(skip, default)]
+	#[serde(skip)]
 	_save_path: PathBuf,
 
 	pub audio_volume: f32,
 	pub metronome_volume: f32,
+
+	pub colormap: Colormap,
 }
 
 impl Default for Settings {
@@ -23,6 +28,8 @@ impl Default for Settings {
 
 			audio_volume: 0.4,
 			metronome_volume: 0.2,
+
+			colormap: Colormap::Roseus,
 		}
 	}
 }

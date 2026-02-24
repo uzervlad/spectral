@@ -12,6 +12,7 @@ use crate::audio::{AudioData, AudioPlayer};
 use crate::events::SpectralEvent;
 use crate::metronome::{MetronomeState, metronome_thread};
 use crate::settings::SettingsManager;
+use crate::spectrogram::colors::Colormap;
 use crate::spectrogram::{CachedSpectrogram, Spectrogram};
 use crate::timing::TimingPoint;
 use crate::widgets::timeline::Timeline;
@@ -40,6 +41,7 @@ pub struct SpectralApp {
 	event_tx: Sender<SpectralEvent>,
 
 	spectrogram: Spectrogram,
+	spectrogram_colormap: Colormap,
 	cached_spectrogram: Option<CachedSpectrogram>,
 	fft_size: usize,
 	min_db: f32,
@@ -84,12 +86,12 @@ impl SpectralApp {
 			_metronome,
 
 			history: EditHistory::default(),
-			settings,
 
 			event_rx,
 			event_tx,
 
 			spectrogram: Spectrogram::new(2048),
+			spectrogram_colormap: settings.read(|s| s.colormap),
 			cached_spectrogram: None,
 			fft_size: 2048,
 			min_db: -80.,
@@ -106,6 +108,8 @@ impl SpectralApp {
 
 			timing_points,
 			edited_timing_point: None,
+
+			settings,
 		};
 
 		if let Some(arg) = args().nth(1)

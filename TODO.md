@@ -16,7 +16,7 @@ Please send in any feature suggestions or bug reports through **issues**.
 ### Optional
 
 - [ ] Prerender larger spectrogram images to prevent constant lag when scrolling
-- [ ] Customizable spectrogram color schemes
+- [x] Customizable spectrogram colormaps
 - [ ] Simplify anchoring on larger intervals (BPM multiplication/division)
 
 ### Very optional

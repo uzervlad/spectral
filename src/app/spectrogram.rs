@@ -2,7 +2,6 @@ use egui::{ColorImage, TextureHandle};
 
 use crate::app::SpectralApp;
 use crate::spectrogram::{CachedSpectrogram, Spectrogram};
-use crate::util::magma_colormap;
 
 impl SpectralApp {
 	pub fn generate_spectrogram(
@@ -53,7 +52,7 @@ impl SpectralApp {
 				let frac = bin_float - bin_lo as f32;
 
 				let value = column[bin_lo] * (1. - frac) + column[bin_hi] * frac;
-				let color = magma_colormap(value);
+				let color = self.spectrogram_colormap.get_color(value);
 
 				image[(x, y)] = color;
 			}

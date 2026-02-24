@@ -6,6 +6,8 @@ use rustfft::num_complex::Complex;
 
 use crate::audio::AudioData;
 
+pub mod colors;
+
 pub struct Spectrogram {
 	pub fft_size: usize,
 	window: Vec<f32>,

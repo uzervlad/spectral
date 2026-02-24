@@ -5,6 +5,7 @@ use crate::app::SpectralApp;
 use crate::app::history::EditHistoryEntry;
 use crate::colors::COLOR_TEXT_HIGHLIGHT;
 use crate::export::{ExportFormat, export_timing_points};
+use crate::spectrogram::colors::Colormap;
 use crate::widgets::time::TimeInput;
 
 impl SpectralApp {
@@ -367,6 +368,33 @@ impl SpectralApp {
 				if db_label.double_clicked() {
 					self.min_db = -80.;
 					self.max_db = 0.;
+				}
+
+				ui.separator();
+
+				let mut colormap = self.spectrogram_colormap;
+
+				ui.label("Colormap");
+
+				egui::ComboBox::from_label("")
+					.selected_text(format!("{:?}", colormap))
+					.show_ui(ui, |ui| {
+						for cm in [
+							Colormap::Roseus,
+							Colormap::Arcus,
+							Colormap::Lavendula,
+							Colormap::Magma,
+						] {
+							ui.selectable_value(&mut colormap, cm, format!("{:?}", cm));
+						}
+					});
+
+				if self.spectrogram_colormap != colormap {
+					self.spectrogram_colormap = colormap;
+					self.settings.write(move |s| s.colormap = colormap);
+
+					self.cached_spectrogram = None;
+					ctx.request_repaint();
 				}
 			});
 
