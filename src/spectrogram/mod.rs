@@ -90,7 +90,7 @@ pub struct CachedSpectrogram {
 	fft_size: usize,
 	min_db: f32,
 	max_db: f32,
-	width: usize,
+	pps: f64,
 }
 
 impl CachedSpectrogram {
@@ -101,7 +101,7 @@ impl CachedSpectrogram {
 		fft_size: usize,
 		min_db: f32,
 		max_db: f32,
-		width: usize,
+		pps: f64,
 	) -> Self {
 		Self {
 			texture,
@@ -110,24 +110,33 @@ impl CachedSpectrogram {
 			min_db,
 			max_db,
 			fft_size,
-			width,
+			pps,
 		}
+	}
+
+	pub fn uv(&self, vis_start: f64, vis_end: f64) -> (f64, f64) {
+		let len = self.end_time - self.start_time;
+
+		(
+			(vis_start - self.start_time) / len,
+			(vis_end - self.start_time) / len,
+		)
 	}
 
 	pub fn is_valid(
 		&self,
-		start_time: f64,
-		end_time: f64,
+		vis_start: f64,
+		vis_end: f64,
 		fft_size: usize,
 		min_db: f32,
 		max_db: f32,
-		width: usize,
+		pps: f64,
 	) -> bool {
-		(self.start_time - start_time).abs() < 0.001
-			&& (self.end_time - end_time).abs() < 0.001
+		self.start_time <= vis_start
+			&& self.end_time >= vis_end
 			&& self.fft_size == fft_size
 			&& (self.min_db - min_db).abs() < 0.1
 			&& (self.max_db - max_db).abs() < 0.1
-			&& self.width == width
+			&& self.pps == pps
 	}
 }

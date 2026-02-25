@@ -9,7 +9,7 @@ impl SpectralApp {
 		ctx: &egui::Context,
 		width: usize,
 		height: usize,
-	) -> Option<TextureHandle> {
+	) -> Option<(TextureHandle, f64, f64)> {
 		let audio = self.audio_data.as_ref()?;
 
 		let (vis_start, vis_end) = self.timeline.visible_range(width as _);
@@ -21,27 +21,34 @@ impl SpectralApp {
 				self.fft_size,
 				self.min_db,
 				self.max_db,
-				width,
+				self.timeline.pixels_per_second,
 			) {
-			return Some(cached.texture.clone());
+			let (x_from, x_to) = cached.uv(vis_start, vis_end);
+			return Some((cached.texture.clone(), x_from, x_to));
 		}
 
 		if self.fft_size != self.spectrogram.fft_size {
 			self.spectrogram = Spectrogram::new(self.fft_size);
 		}
 
+		let vis_len = vis_end - vis_start;
+		let spec_start = (vis_start - vis_len / 2.).max(0.);
+		let spec_end = (vis_end + vis_len / 2.).min(audio.duration);
+
+		let spec_width = (spec_end - spec_start) / vis_len * width as f64;
+ 
 		let columns = self.spectrogram.compute_range(
 			audio,
-			vis_start,
-			vis_end,
-			width,
+			spec_start,
+			spec_end,
+			spec_width as _,
 			self.min_db,
 			self.max_db,
 		);
 
 		let freq_bins = self.spectrogram.fft_size / 2;
 
-		let mut image = ColorImage::filled([width, height], Default::default());
+		let mut image = ColorImage::filled([spec_width as _, height], Default::default());
 
 		for (x, column) in columns.iter().enumerate() {
 			for y in 0..height {
@@ -60,16 +67,19 @@ impl SpectralApp {
 
 		let texture = ctx.load_texture("spectrogram", image, egui::TextureOptions::LINEAR);
 
-		self.cached_spectrogram = Some(CachedSpectrogram::new(
+		let cached = CachedSpectrogram::new(
 			texture,
-			vis_start,
-			vis_end,
+			spec_start,
+			spec_end,
 			self.fft_size,
 			self.min_db,
 			self.max_db,
-			width,
-		));
+			self.timeline.pixels_per_second,
+		);
+		let (x_from, x_to) = cached.uv(vis_start, vis_end);
+		
+		self.cached_spectrogram = Some(cached);
 
-		Some(self.cached_spectrogram.as_ref().unwrap().texture.clone())
+		Some((self.cached_spectrogram.as_ref().unwrap().texture.clone(), x_from, x_to))
 	}
 }

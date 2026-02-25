@@ -118,11 +118,8 @@ impl SpectralApp {
 			return;
 		}
 
-		let width = (rect.width() as usize).max(100);
-		let height = (rect.height() as usize).max(100);
-
-		if let Some(texture) = self.generate_spectrogram(ui.ctx(), width, height) {
-			let uv = Rect::from_min_max(Pos2::new(0., 0.), Pos2::new(1., 1.));
+		if let Some((texture, x_from, x_to)) = self.generate_spectrogram(ui.ctx(), rect.width() as _, rect.height() as _) {
+			let uv = Rect::from_min_max(Pos2::new(x_from as _, 0.), Pos2::new(x_to as _, 1.));
 			painter.image(texture.id(), rect, uv, Color32::WHITE);
 		}
 	}
