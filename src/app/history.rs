@@ -75,7 +75,7 @@ impl EditHistory {
 	}
 
 	pub fn peek_undo(&self) -> Option<EditHistoryEntry> {
-		self.changes.get(self.cursor - 1).copied()
+		self.changes.get(self.cursor.saturating_sub(1)).copied()
 	}
 
 	pub fn can_redo(&mut self) -> bool {
