@@ -32,8 +32,8 @@ impl SpectralApp {
 		}
 
 		let vis_len = vis_end - vis_start;
-		let spec_start = (vis_start - vis_len / 2.).max(0.);
-		let spec_end = (vis_end + vis_len / 2.).min(audio.duration);
+		let spec_start = (vis_start - vis_len / 4.).max(0.);
+		let spec_end = (vis_end + vis_len / 4.).min(audio.duration);
 
 		let spec_width = (spec_end - spec_start) / vis_len * width as f64;
  

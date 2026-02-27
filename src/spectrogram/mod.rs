@@ -1,7 +1,9 @@
 use std::f32::consts::PI;
+use std::sync::Arc;
 
 use egui::TextureHandle;
-use rustfft::FftPlanner;
+use rayon::iter::{IntoParallelIterator, IntoParallelRefIterator, ParallelIterator as _};
+use rustfft::{Fft, FftPlanner};
 use rustfft::num_complex::Complex;
 
 use crate::audio::AudioData;
@@ -11,7 +13,8 @@ pub mod colors;
 pub struct Spectrogram {
 	pub fft_size: usize,
 	window: Vec<f32>,
-	planner: FftPlanner<f32>,
+	_planner: FftPlanner<f32>,
+	fft: Arc<dyn Fft<f32>>
 }
 
 impl Spectrogram {
@@ -20,21 +23,24 @@ impl Spectrogram {
 			.map(|i| 0.5 * (1. - (2. * PI * i as f32 / (fft_size - 1) as f32).cos()))
 			.collect();
 
+		let mut _planner = FftPlanner::new();
+		let fft = _planner.plan_fft_forward(fft_size);
+
 		Self {
 			fft_size,
 			window,
-			planner: FftPlanner::new(),
+			_planner,
+			fft,
 		}
 	}
 
 	pub fn compute_column(
-		&mut self,
+		&self,
 		data: &AudioData,
 		center_sample: isize,
 		min_db: f32,
 		max_db: f32,
 	) -> Vec<f32> {
-		let fft = self.planner.plan_fft_forward(self.fft_size);
 		let half = (self.fft_size / 2) as isize;
 
 		let mut buffer: Vec<_> = (0..self.fft_size)
@@ -49,10 +55,10 @@ impl Spectrogram {
 			})
 			.collect();
 
-		fft.process(&mut buffer);
+		self.fft.process(&mut buffer);
 
 		buffer[..self.fft_size / 2]
-			.iter()
+			.par_iter()
 			.map(|c| {
 				let mag = c.norm() * 2. / self.fft_size as f32;
 				let db = 20. * mag.max(1e-10).log10();
@@ -62,7 +68,7 @@ impl Spectrogram {
 	}
 
 	pub fn compute_range(
-		&mut self,
+		&self,
 		data: &AudioData,
 		start_time: f64,
 		end_time: f64,
@@ -75,6 +81,7 @@ impl Spectrogram {
 		let samples_per_column = (end_sample - start_sample) as f64 / columns as f64;
 
 		(0..columns)
+			.into_par_iter()
 			.map(|i| {
 				let sample = start_sample + (i as f64 * samples_per_column) as isize;
 				self.compute_column(data, sample, min_db, max_db)
