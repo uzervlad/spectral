@@ -6,6 +6,9 @@ edition = "2024"
 [lints.clippy]
 new_without_default = "allow"
 
+[profile.release]
+debug = true
+
 [profile.dist]
 inherits = "release"
 
@@ -14,6 +17,7 @@ lto = true
 codegen-units = 1
 strip = "debuginfo"
 panic = "abort"
+debug = false
 
 [dependencies]
 dirs = "6.0.0"

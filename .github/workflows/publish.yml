@@ -4,13 +4,13 @@ on:
   push:
     tags:
       - v*
+  workflow_dispatch:
 
 permissions:
   contents: write
 
 env:
   CARGO_TERM_COLOR: always
-  BINARY_NAME: spectral
 
 jobs:
   build:
@@ -51,6 +51,7 @@ jobs:
           name: ${{ matrix.artifact }}
           path: ${{ matrix.artifact }}
   release:
+    if: github.event_name == 'push'
     needs:
       - build
     runs-on: ubuntu-latest
