@@ -848,40 +848,11 @@ impl Colormap {
 	}
 }
 
-trait Lerp {
-	fn lerp(&self, other: Self, t: f32) -> Self;
-}
-
-impl Lerp for f32 {
-	fn lerp(&self, other: Self, t: f32) -> Self {
-		self * (1. - t) + other * t
-	}
-}
-
-impl Lerp for ColorTuple {
-	fn lerp(&self, other: Self, t: f32) -> Self {
-		(
-			self.0.lerp(other.0, t),
-			self.1.lerp(other.1, t),
-			self.2.lerp(other.2, t),
-		)
-	}
-}
-
 fn get_map_color(data: &[ColorTuple], t: f32) -> Color32 {
-	let t = t.clamp(0., 1.) * data.len() as f32;
+	let t = t.clamp(0., 1.) * (data.len() - 1) as f32;
 
 	let i = t.floor() as usize;
-	let f = t.fract();
 
-	if f <= f32::EPSILON {
-		let (r, g, b) = data[i];
-		return Color32::from_rgb((r * 255.) as u8, (g * 255.) as u8, (b * 255.) as u8);
-	}
-
-	let a = data[i];
-	let b = data[i + 1];
-	let (r, g, b) = a.lerp(b, f);
-
+	let (r, g, b) = data[i];
 	Color32::from_rgb((r * 255.) as u8, (g * 255.) as u8, (b * 255.) as u8)
 }
