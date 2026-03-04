@@ -36,7 +36,7 @@ impl SpectralApp {
 		let spec_end = (vis_end + vis_len / 4.).min(audio.duration);
 
 		let spec_width = (spec_end - spec_start) / vis_len * width as f64;
- 
+
 		let columns = self.spectrogram.compute_range(
 			audio,
 			spec_start,
@@ -77,9 +77,13 @@ impl SpectralApp {
 			self.timeline.pixels_per_second,
 		);
 		let (x_from, x_to) = cached.uv(vis_start, vis_end);
-		
+
 		self.cached_spectrogram = Some(cached);
 
-		Some((self.cached_spectrogram.as_ref().unwrap().texture.clone(), x_from, x_to))
+		Some((
+			self.cached_spectrogram.as_ref().unwrap().texture.clone(),
+			x_from,
+			x_to,
+		))
 	}
 }

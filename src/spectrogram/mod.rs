@@ -3,8 +3,8 @@ use std::sync::Arc;
 
 use egui::TextureHandle;
 use rayon::iter::{IntoParallelIterator, IntoParallelRefIterator, ParallelIterator as _};
-use rustfft::{Fft, FftPlanner};
 use rustfft::num_complex::Complex;
+use rustfft::{Fft, FftPlanner};
 
 use crate::audio::AudioData;
 
@@ -14,7 +14,7 @@ pub struct Spectrogram {
 	pub fft_size: usize,
 	window: Vec<f32>,
 	_planner: FftPlanner<f32>,
-	fft: Arc<dyn Fft<f32>>
+	fft: Arc<dyn Fft<f32>>,
 }
 
 impl Spectrogram {
