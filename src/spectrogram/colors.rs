@@ -849,7 +849,7 @@ impl Colormap {
 }
 
 fn get_map_color(data: &[ColorTuple], t: f32) -> Color32 {
-	let t = t.clamp(0., 1.) * data.len() as f32;
+	let t = t.clamp(0., 1.) * (data.len() - 1) as f32;
 
 	let i = t.floor() as usize;
 
