@@ -67,6 +67,11 @@ pub fn metronome_thread(
 		if state.is_playing() {
 			playhead_ms = state.get_position_ms();
 
+			if (playhead_ms - previous_ms).abs() >= 20. {
+				thread::sleep(Duration::from_millis(3));
+				continue;
+			}
+
 			if let Some(click) =
 				check_metronome(previous_ms, playhead_ms, &timing_points.read().unwrap())
 			{
@@ -77,7 +82,7 @@ pub fn metronome_thread(
 			}
 		}
 
-		thread::sleep(Duration::from_millis(3));
+		thread::sleep(Duration::from_micros(500));
 	}
 }
 
