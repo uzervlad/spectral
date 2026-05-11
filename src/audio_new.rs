@@ -458,7 +458,11 @@ fn create_audio_data_callback(
 		let end_ms = start_ms
 			+ (data.len() as f64 / channels as f64 / original_sample_rate as f64) * speed * 1000.;
 
-		let new_clicks = check_metronome(start_ms, end_ms, &timing_points.read().unwrap());
+		let new_clicks = if state.playing {
+			check_metronome(start_ms, end_ms, &timing_points.read().unwrap())
+		} else {
+			vec![]
+		};
 
 		for (time, click) in new_clicks {
 			let click_samples: Arc<[f32]> = metronome_samples.get_sample(click);
