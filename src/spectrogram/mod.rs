@@ -6,7 +6,7 @@ use rayon::iter::{IntoParallelIterator, IntoParallelRefIterator, ParallelIterato
 use rustfft::num_complex::Complex;
 use rustfft::{Fft, FftPlanner};
 
-use crate::audio::AudioData;
+use crate::audio_new::AudioData;
 
 pub mod colors;
 
@@ -46,8 +46,8 @@ impl Spectrogram {
 		let mut buffer: Vec<_> = (0..self.fft_size)
 			.map(|i| {
 				let idx = center_sample - half + i as isize;
-				let sample = if idx >= 0 && (idx as usize) < data.mono_samples.len() {
-					data.mono_samples[idx as usize]
+				let sample = if idx >= 0 && (idx as usize) < data.mono_samples().len() {
+					data.mono_samples()[idx as usize]
 				} else {
 					0.
 				};
@@ -76,8 +76,8 @@ impl Spectrogram {
 		min_db: f32,
 		max_db: f32,
 	) -> Vec<Vec<f32>> {
-		let start_sample = (start_time / 1000. * data.sample_rate as f64) as isize;
-		let end_sample = (end_time / 1000. * data.sample_rate as f64) as isize;
+		let start_sample = (start_time / 1000. * data.sample_rate() as f64) as isize;
+		let end_sample = (end_time / 1000. * data.sample_rate() as f64) as isize;
 		let samples_per_column = (end_sample - start_sample) as f64 / columns as f64;
 
 		(0..columns)

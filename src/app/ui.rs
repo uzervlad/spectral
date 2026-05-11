@@ -54,7 +54,7 @@ impl SpectralApp {
 		let painter = ui.painter_at(rect);
 
 		if let Some(data) = &self.audio_data {
-			let max_freq = data.sample_rate as f32 / 2.;
+			let max_freq = data.sample_rate() as f32 / 2.;
 
 			let freqs = [
 				2000., 4000., 6000., 8000., 10000., 12000., 14000., 16000., 18000., 20000.,
@@ -146,7 +146,7 @@ impl SpectralApp {
 	pub fn draw_playhead(&self, ui: &mut Ui, rect: Rect) {
 		let x = self
 			.timeline
-			.ms_to_x(self.audio_player.get_position_ms(), rect);
+			.ms_to_x(self.audio_system.get_position_ms(), rect);
 
 		if x >= rect.left() && x <= rect.right() {
 			ui.painter_at(rect).line_segment(
@@ -262,7 +262,7 @@ impl SpectralApp {
 		};
 
 		let playhead_x = rect.left()
-			+ (self.audio_player.get_position_ms() / audio_data.duration) as f32 * rect.width();
+			+ (self.audio_system.get_position_ms() / audio_data.duration()) as f32 * rect.width();
 
 		painter.line_segment(
 			[
@@ -273,7 +273,7 @@ impl SpectralApp {
 		);
 
 		for tp in self.timing_points.read().unwrap().iter() {
-			let tp_x = rect.left() + (tp.offset / audio_data.duration) as f32 * rect.width();
+			let tp_x = rect.left() + (tp.offset / audio_data.duration()) as f32 * rect.width();
 
 			painter.line_segment(
 				[Pos2::new(tp_x, rect.top()), Pos2::new(tp_x, rect.bottom())],
@@ -283,8 +283,8 @@ impl SpectralApp {
 
 		let (start, end) = self.timeline.visible_range(rect.width());
 
-		let start = start / audio_data.duration;
-		let end = end / audio_data.duration;
+		let start = start / audio_data.duration();
+		let end = end / audio_data.duration();
 
 		let thumb_rect = Rect::from_min_max(
 			Pos2::new(rect.left() + rect.width() * start as f32, rect.top()),
@@ -314,18 +314,18 @@ impl SpectralApp {
 
 		if thumb_response.dragged() {
 			let delta_pixels = thumb_response.drag_delta().x as f64;
-			let delta_ms = delta_pixels * audio_data.duration / rect.width() as f64;
+			let delta_ms = delta_pixels * audio_data.duration() / rect.width() as f64;
 			self.timeline
-				.scroll_ms(delta_ms, audio_data.duration, rect.width());
+				.scroll_ms(delta_ms, audio_data.duration(), rect.width());
 		}
 
 		if bar_response.clicked()
 			&& !thumb_response.hovered()
 			&& let Some(pos) = bar_response.interact_pointer_pos()
 		{
-			let clicked_ms = ((pos.x - rect.left()) / rect.width()) as f64 * audio_data.duration;
+			let clicked_ms = ((pos.x - rect.left()) / rect.width()) as f64 * audio_data.duration();
 			self.timeline
-				.scroll_to(clicked_ms, audio_data.duration, rect.width());
+				.scroll_to(clicked_ms, audio_data.duration(), rect.width());
 		}
 	}
 }

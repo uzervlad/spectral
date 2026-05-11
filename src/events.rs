@@ -1,11 +1,9 @@
 use std::path::PathBuf;
 
-use eyre::Result;
-
-use crate::audio::AudioData;
+use crate::audio_new::AudioData;
 
 pub enum SpectralEvent {
 	OpenAudio { path: PathBuf },
-	LoadAudio { data: Result<AudioData> },
+	LoadAudio { data: AudioData },
 	Export { error: Option<String> },
 }

@@ -25,7 +25,7 @@ impl SpectralApp {
 			} else {
 				self.audio_data
 					.as_ref()
-					.map(|data| data.duration)
+					.map(|data| data.duration())
 					.unwrap_or(f64::MAX)
 			};
 

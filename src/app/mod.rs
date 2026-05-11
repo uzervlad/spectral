@@ -3,15 +3,15 @@ use std::path::PathBuf;
 use std::str::FromStr;
 use std::sync::mpsc::{self, Receiver, Sender};
 use std::sync::{Arc, RwLock};
-use std::thread::{self, JoinHandle};
+use std::thread;
 
 use egui::{Rect, Ui};
 
 use crate::app::history::{EditHistory, EditHistoryEntry};
 use crate::app::modal::ResultModalData;
-use crate::audio::{AudioData, AudioPlayer};
+use crate::audio_new::{AudioData, AudioSystem, load_audio_from_path};
 use crate::events::SpectralEvent;
-use crate::metronome::{MetronomeState, metronome_thread};
+// use crate::metronome::{MetronomeState, metronome_thread};
 use crate::settings::SettingsManager;
 use crate::spectrogram::colors::Colormap;
 use crate::spectrogram::{CachedSpectrogram, Spectrogram};
@@ -31,10 +31,11 @@ enum TimingMode {
 }
 
 pub struct SpectralApp {
-	audio_data: Option<AudioData>,
-	audio_player: AudioPlayer,
+	// audio_player: AudioPlayer,
+	audio_system: AudioSystem,
+	audio_data: Option<Arc<AudioData>>,
 	audio_loading: bool,
-	_metronome: JoinHandle<()>,
+	// _metronome: JoinHandle<()>,
 
 	history: EditHistory,
 	settings: Arc<SettingsManager>,
@@ -70,24 +71,25 @@ impl SpectralApp {
 
 		let settings = Arc::new(SettingsManager::new());
 
-		let audio_player = AudioPlayer::new(settings.clone()).expect("penis");
 		let timing_points = Arc::new(RwLock::new(vec![
 			TimingPoint::new(100., 120.),
 			TimingPoint::new(7727., 222.22),
 		]));
+		let audio_system = AudioSystem::new(settings.clone(), timing_points.clone());
 
-		let state = MetronomeState::from(&audio_player);
-		let sink = audio_player.metronome_sink.clone();
-		let _tp = timing_points.clone();
-		let _metronome = thread::spawn(move || {
-			metronome_thread(state, sink, _tp);
-		});
+		// let state = MetronomeState::from(&audio_player);
+		// let sink = audio_player.metronome_sink.clone();
+		// let _tp = timing_points.clone();
+		// let _metronome = thread::spawn(move || {
+		// 	metronome_thread(state, sink, _tp);
+		// });
 
 		let mut _self = Self {
+			// audio_player,
+			audio_system,
 			audio_data: None,
-			audio_player,
 			audio_loading: false,
-			_metronome,
+			// _metronome,
 
 			history: EditHistory::default(),
 
@@ -136,19 +138,26 @@ impl SpectralApp {
 			SpectralEvent::LoadAudio { data } => {
 				self.audio_loading = false;
 
-				match data {
-					Ok(data) => {
-						let _ = self.audio_player.load(&data);
+				let data = Arc::new(data);
 
-						self.audio_data = Some(data);
-						self.cached_spectrogram = None;
-						self.timing_points.write().unwrap().clear();
-						self.timeline.reset();
-					},
-					Err(e) => {
-						self.set_result(format!("Error during audio loading: {:?}", e));
-					},
-				}
+				self.audio_data = Some(data.clone());
+				self.audio_system.load_audio_data(data);
+				self.cached_spectrogram = None;
+				self.timing_points.write().unwrap().clear();
+				self.timeline.reset();
+				// match data {
+				// 	Ok(data) => {
+				// 		let _ = self.audio_player.load(&data);
+
+				// 		self.audio_data = Some(data);
+				// 		self.cached_spectrogram = None;
+				// 		self.timing_points.write().unwrap().clear();
+				// 		self.timeline.reset();
+				// 	},
+				// 	Err(e) => {
+				// 		self.set_result(format!("Error during audio loading: {:?}", e));
+				// 	},
+				// }
 			},
 			SpectralEvent::Export { error } => {
 				let message = match error {
@@ -166,12 +175,12 @@ impl SpectralApp {
 	}
 
 	fn load_audio(&mut self, path: PathBuf) {
-		self.audio_player.pause();
+		self.audio_system.pause();
 		self.audio_loading = true;
 
 		let tx = self.event_tx.clone();
 		thread::spawn(move || {
-			let data = AudioData::load_from_file(path);
+			let data = load_audio_from_path(path);
 			let _ = tx.send(SpectralEvent::LoadAudio { data });
 		});
 	}
@@ -196,7 +205,7 @@ impl SpectralApp {
 		let duration = self
 			.audio_data
 			.as_ref()
-			.map(|data| data.duration)
+			.map(|data| data.duration())
 			.unwrap_or(0.);
 
 		let mouse_pos = ui.input(|i| i.pointer.hover_pos());
@@ -270,7 +279,7 @@ impl SpectralApp {
 			};
 
 			if let Some(click_ms) = ms {
-				self.audio_player.seek_to(click_ms);
+				self.audio_system.seek_to(click_ms);
 			}
 		}
 	}
@@ -294,7 +303,7 @@ impl eframe::App for SpectralApp {
 		}
 
 		if ctx.input(|i| i.key_pressed(egui::Key::Space)) {
-			self.audio_player.play_pause();
+			self.audio_system.toggle_playback();
 		}
 
 		if ctx.input(|i| i.key_pressed(egui::Key::Escape)) {
@@ -321,7 +330,7 @@ impl eframe::App for SpectralApp {
 			self.redo(entry);
 		}
 
-		if self.audio_player.is_playing() {
+		if self.audio_system.is_playing() {
 			ctx.request_repaint();
 		}
 

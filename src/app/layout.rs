@@ -19,14 +19,14 @@ impl SpectralApp {
 				ui.separator();
 
 				if ui
-					.button(if self.audio_player.is_playing() {
+					.button(if self.audio_system.is_playing() {
 						"Pause"
 					} else {
 						"Play"
 					})
 					.clicked()
 				{
-					self.audio_player.play_pause();
+					self.audio_system.toggle_playback();
 				}
 
 				ui.separator();
@@ -63,7 +63,7 @@ impl SpectralApp {
 
 				ui.label("Volume:");
 
-				let mut volume = self.audio_player.get_volume();
+				let mut volume = self.audio_system.get_volume();
 				if ui
 					.add(
 						egui::Slider::new(&mut volume, 0.0..=1.0)
@@ -72,7 +72,7 @@ impl SpectralApp {
 					)
 					.changed()
 				{
-					self.audio_player.set_volume(volume);
+					self.audio_system.set_volume(volume);
 					self.settings.write(move |s| s.audio_volume = volume);
 				}
 
@@ -82,7 +82,7 @@ impl SpectralApp {
 
 				ui.label("Metronome volume:");
 
-				let mut volume = self.audio_player.get_metronome_volume();
+				let mut volume = self.audio_system.get_metronome_volume();
 				if ui
 					.add(
 						egui::Slider::new(&mut volume, 0.0..=1.0)
@@ -91,11 +91,34 @@ impl SpectralApp {
 					)
 					.changed()
 				{
-					self.audio_player.set_metronome_volume(volume);
+					self.audio_system.set_metronome_volume(volume);
 					self.settings.write(move |s| s.metronome_volume = volume);
 				}
 
 				ui.label(format!("{:.0}%", volume * 100.));
+
+				ui.separator();
+
+				ui.label("Speed:");
+
+				let mut speed = self.audio_system.get_playback_speed();
+				if ui
+					.add(
+						egui::Slider::new(&mut speed, 0.5..=2.0)
+							.show_value(false)
+							.fixed_decimals(2),
+					)
+					.changed()
+				{
+					self.audio_system.set_playback_speed(speed);
+				}
+
+				if ui.label(format!("{:.0}%", speed * 100.))
+					.on_hover_cursor(egui::CursorIcon::PointingHand)
+					.double_clicked()
+				{
+					self.audio_system.set_playback_speed(1.0);
+				}
 
 				ui.separator();
 
@@ -223,7 +246,7 @@ impl SpectralApp {
 										+ timing_point.ms_per_beat() < self
 										.audio_data
 										.as_ref()
-										.map(|d| d.duration)
+										.map(|d| d.duration())
 										.unwrap_or_default()
 									{
 										timing_point.offset += timing_point.ms_per_beat();

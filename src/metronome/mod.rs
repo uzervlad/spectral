@@ -1,29 +1,22 @@
-use std::sync::atomic::{AtomicBool, AtomicU16, AtomicU32, AtomicUsize, Ordering};
-use std::sync::{Arc, RwLock};
-use std::thread;
-use std::time::Duration;
-
-use rodio::Sink;
-use rodio::buffer::SamplesBuffer;
-
-use crate::audio::AudioPlayer;
-use crate::metronome::samples::MetronomeSamples;
+// use crate::audio::AudioPlayer;
+// use crate::metronome::samples::MetronomeSamples;
 use crate::timing::TimingPoint;
 
-mod samples;
+pub mod samples;
 
-enum ClickType {
+#[derive(Debug, Clone, Copy)]
+pub enum ClickType {
 	Downbeat,
 	Beat,
 }
 
-fn check_metronome(
+pub fn check_metronome(
 	previous: f64,
 	current: f64,
 	timing_points: &[TimingPoint],
-) -> Option<ClickType> {
+) -> Vec<(f64, ClickType)> {
 	if timing_points.is_empty() {
-		return None;
+		return vec![];
 	}
 
 	let tp_idx = timing_points
@@ -37,81 +30,24 @@ fn check_metronome(
 	let current_beat = ((current - tp.offset) / ms_per_beat).floor() as i64;
 	let previous_beat = ((previous - tp.offset) / ms_per_beat).floor() as i64;
 
-	if current_beat > previous_beat && current >= tp.offset {
-		let ticks_per_measure = tp.signature.0 as i64;
+	let mut clicks = Vec::new();
 
-		let is_downbeat = current_beat % ticks_per_measure == 0;
+	for beat in previous_beat + 1..=current_beat {
+		let beat_time = tp.offset + (beat as f64 * ms_per_beat);
+		if beat_time >= previous && beat_time < current {
+			let ticks_per_measure = tp.signature.0 as i64;
+			let is_downbeat = beat % ticks_per_measure == 0;
 
-		Some(if is_downbeat {
-			ClickType::Downbeat
-		} else {
-			ClickType::Beat
-		})
-	} else {
-		None
-	}
-}
-
-pub fn metronome_thread(
-	state: MetronomeState,
-	sink: Arc<Sink>,
-	timing_points: Arc<RwLock<Vec<TimingPoint>>>,
-) {
-	let samples = MetronomeSamples::load().expect("Failed to load metronome samples");
-
-	let mut playhead_ms = state.get_position_ms();
-
-	loop {
-		let previous_ms = playhead_ms;
-
-		if state.is_playing() {
-			playhead_ms = state.get_position_ms();
-
-			if (playhead_ms - previous_ms).abs() >= 20. {
-				thread::sleep(Duration::from_millis(3));
-				continue;
-			}
-
-			if let Some(click) =
-				check_metronome(previous_ms, playhead_ms, &timing_points.read().unwrap())
-			{
-				let (samples, sample_rate, channels) = samples.get_sample(click);
-
-				let source = SamplesBuffer::new(channels, sample_rate, samples.as_ref().clone());
-				sink.append(source);
-			}
-		}
-
-		thread::sleep(Duration::from_micros(500));
-	}
-}
-
-pub struct MetronomeState {
-	playing: Arc<AtomicBool>,
-	sample_rate: Arc<AtomicU32>,
-	channels: Arc<AtomicU16>,
-	position: Arc<AtomicUsize>,
-}
-
-impl From<&AudioPlayer> for MetronomeState {
-	fn from(value: &AudioPlayer) -> Self {
-		Self {
-			playing: value.playing.clone(),
-			sample_rate: value.sample_rate.clone(),
-			channels: value.channels.clone(),
-			position: value.position.clone(),
+			clicks.push((
+				beat_time,
+				if is_downbeat {
+					ClickType::Downbeat
+				} else {
+					ClickType::Beat
+				},
+			));
 		}
 	}
-}
 
-impl MetronomeState {
-	fn get_position_ms(&self) -> f64 {
-		let pos = self.position.load(Ordering::SeqCst);
-		let frame = pos / self.channels.load(Ordering::SeqCst) as usize;
-		(frame as f64 / self.sample_rate.load(Ordering::SeqCst) as f64) * 1000.
-	}
-
-	fn is_playing(&self) -> bool {
-		self.playing.load(Ordering::SeqCst)
-	}
+	clicks
 }
