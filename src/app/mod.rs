@@ -11,7 +11,6 @@ use crate::app::history::{EditHistory, EditHistoryEntry};
 use crate::app::modal::ResultModalData;
 use crate::audio_new::{AudioData, AudioSystem, load_audio_from_path};
 use crate::events::SpectralEvent;
-// use crate::metronome::{MetronomeState, metronome_thread};
 use crate::settings::SettingsManager;
 use crate::spectrogram::colors::Colormap;
 use crate::spectrogram::{CachedSpectrogram, Spectrogram};
@@ -31,11 +30,9 @@ enum TimingMode {
 }
 
 pub struct SpectralApp {
-	// audio_player: AudioPlayer,
 	audio_system: AudioSystem,
 	audio_data: Option<Arc<AudioData>>,
 	audio_loading: bool,
-	// _metronome: JoinHandle<()>,
 
 	history: EditHistory,
 	settings: Arc<SettingsManager>,
@@ -77,19 +74,10 @@ impl SpectralApp {
 		]));
 		let audio_system = AudioSystem::new(settings.clone(), timing_points.clone());
 
-		// let state = MetronomeState::from(&audio_player);
-		// let sink = audio_player.metronome_sink.clone();
-		// let _tp = timing_points.clone();
-		// let _metronome = thread::spawn(move || {
-		// 	metronome_thread(state, sink, _tp);
-		// });
-
 		let mut _self = Self {
-			// audio_player,
 			audio_system,
 			audio_data: None,
 			audio_loading: false,
-			// _metronome,
 
 			history: EditHistory::default(),
 
@@ -145,19 +133,6 @@ impl SpectralApp {
 				self.cached_spectrogram = None;
 				self.timing_points.write().unwrap().clear();
 				self.timeline.reset();
-				// match data {
-				// 	Ok(data) => {
-				// 		let _ = self.audio_player.load(&data);
-
-				// 		self.audio_data = Some(data);
-				// 		self.cached_spectrogram = None;
-				// 		self.timing_points.write().unwrap().clear();
-				// 		self.timeline.reset();
-				// 	},
-				// 	Err(e) => {
-				// 		self.set_result(format!("Error during audio loading: {:?}", e));
-				// 	},
-				// }
 			},
 			SpectralEvent::Export { error } => {
 				let message = match error {

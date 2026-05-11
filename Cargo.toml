@@ -5,7 +5,6 @@ edition = "2024"
 
 [lints.clippy]
 new_without_default = { level = "allow" }
-pedantic = { level = "warn", priority = -1 }
 
 [profile.release]
 debug = true

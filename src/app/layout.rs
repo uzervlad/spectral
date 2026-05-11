@@ -113,7 +113,8 @@ impl SpectralApp {
 					self.audio_system.set_playback_speed(speed);
 				}
 
-				if ui.label(format!("{:.0}%", speed * 100.))
+				if ui
+					.label(format!("{:.0}%", speed * 100.))
 					.on_hover_cursor(egui::CursorIcon::PointingHand)
 					.double_clicked()
 				{

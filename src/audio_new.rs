@@ -1,10 +1,20 @@
-use std::{fs::File, io::Cursor, path::PathBuf, sync::{Arc, Mutex, RwLock}};
+use std::fs::File;
+use std::io::Cursor;
+use std::path::PathBuf;
+use std::sync::{Arc, Mutex, RwLock};
 
-use cpal::{SampleFormat, Stream, traits::{DeviceTrait, HostTrait, StreamTrait}};
-use rubato::{Async, FixedAsync, PolynomialDegree, Resampler, audioadapter_buffers::direct::InterleavedSlice};
-use symphonia::core::{audio::{AudioBuffer, Signal as _}, io::MediaSourceStream, probe::Hint};
+use cpal::traits::{DeviceTrait, HostTrait, StreamTrait};
+use cpal::{SampleFormat, Stream};
+use rubato::audioadapter_buffers::direct::InterleavedSlice;
+use rubato::{Async, FixedAsync, PolynomialDegree, Resampler};
+use symphonia::core::audio::{AudioBuffer, Signal as _};
+use symphonia::core::io::MediaSourceStream;
+use symphonia::core::probe::Hint;
 
-use crate::{metronome::{ClickType, check_metronome, samples::MetronomeSamples}, settings::SettingsManager, timing::TimingPoint};
+use crate::metronome::samples::MetronomeSamples;
+use crate::metronome::{ClickType, check_metronome};
+use crate::settings::SettingsManager;
+use crate::timing::TimingPoint;
 
 pub struct AudioData {
 	samples: Arc<[f32]>,
@@ -56,10 +66,11 @@ pub struct AudioState {
 
 impl AudioState {
 	pub fn new(settings: Arc<SettingsManager>) -> Self {
-		let mut _self = Self::default();
-		_self.volume = settings.read(|s| s.audio_volume);
-		_self.metronome_volume = settings.read(|s| s.metronome_volume);
-		_self
+		Self {
+			volume: settings.read(|s| s.audio_volume),
+			metronome_volume: settings.read(|s| s.metronome_volume),
+			..Default::default()
+		}
 	}
 }
 
@@ -95,13 +106,18 @@ pub struct AudioSystem {
 }
 
 impl AudioSystem {
-	pub fn new(settings: Arc<SettingsManager>, timing_points: Arc<RwLock<Vec<TimingPoint>>>) -> Self {
+	pub fn new(
+		settings: Arc<SettingsManager>,
+		timing_points: Arc<RwLock<Vec<TimingPoint>>>,
+	) -> Self {
 		let host = cpal::default_host();
 
-		let device = host.default_output_device()
+		let device = host
+			.default_output_device()
 			.expect("no output device available");
-		
-		let supported_configs: Vec<_> = device.supported_output_configs()
+
+		let supported_configs: Vec<_> = device
+			.supported_output_configs()
 			.expect("failed to get supported configs")
 			.filter(|cfg| cfg.sample_format() == SampleFormat::F32)
 			.collect();
@@ -112,7 +128,7 @@ impl AudioSystem {
 			.max_by_key(|cfg| {
 				let is_stereo = cfg.channels() == 2;
 				let supports_48k = cfg.max_sample_rate() >= 48000;
-				
+
 				match (is_stereo, supports_48k) {
 					(true, true) => 3,
 					(true, false) => 2,
@@ -122,7 +138,8 @@ impl AudioSystem {
 			})
 			.expect("no output configs available");
 
-		let config = best_config.try_with_sample_rate(48000)
+		let config = best_config
+			.try_with_sample_rate(48000)
 			.unwrap_or_else(|| best_config.with_max_sample_rate())
 			.config();
 
@@ -131,12 +148,14 @@ impl AudioSystem {
 		let sample_rate = config.sample_rate;
 		let channels = config.channels as usize;
 
-		let _stream = device.build_output_stream(
-			&config,
-			create_audio_data_callback(state.clone(), timing_points, sample_rate, channels),
-			|_| {},
-			None
-		).unwrap();
+		let _stream = device
+			.build_output_stream(
+				&config,
+				create_audio_data_callback(state.clone(), timing_points, sample_rate, channels),
+				|_| {},
+				None,
+			)
+			.unwrap();
 
 		_stream.play().expect("failed to play stream");
 
@@ -160,9 +179,11 @@ impl AudioSystem {
 					f_ratio,
 					1.1,
 					PolynomialDegree::Septic,
-					1024, channels,
-					FixedAsync::Output
-				).unwrap()
+					1024,
+					channels,
+					FixedAsync::Output,
+				)
+				.unwrap(),
 			)))
 		} else {
 			None
@@ -209,7 +230,8 @@ impl AudioSystem {
 		state.resample_buffer.clear();
 		state.resample_buffer_pos = 0;
 
-		state.position = (ms / 1000.) * self.channels as f64 * state.audio.original_sample_rate() as f64;
+		state.position =
+			(ms / 1000.) * self.channels as f64 * state.audio.original_sample_rate() as f64;
 		state.input_position = (state.position as usize / self.channels) * self.channels;
 
 		state.metronome_current.clear();
@@ -258,8 +280,9 @@ impl AudioSystem {
 					PolynomialDegree::Septic,
 					1024,
 					self.channels,
-					FixedAsync::Output
-				).unwrap()
+					FixedAsync::Output,
+				)
+				.unwrap(),
 			)));
 		} else {
 			state.resampler = None;
@@ -320,7 +343,7 @@ pub fn load_audio_from_bytes(bytes: &'static [u8]) -> AudioData {
 			},
 			Err(_) => {
 				panic!("erm");
-			}
+			},
 		}
 	}
 
@@ -382,7 +405,7 @@ pub fn load_audio_from_path(path: PathBuf) -> AudioData {
 			},
 			Err(_) => {
 				panic!("erm");
-			}
+			},
 		}
 	}
 
@@ -401,7 +424,7 @@ pub fn load_audio_from_path(path: PathBuf) -> AudioData {
 		mono_samples: mono_samples.into(),
 		sample_rate,
 		original_sample_rate: sample_rate,
-		duration
+		duration,
 	}
 }
 
@@ -428,27 +451,30 @@ fn create_audio_data_callback(
 
 		let original_sample_rate = state.audio.original_sample_rate();
 		let speed = state.playback_speed;
-		let source_samples_per_output_sample = speed * original_sample_rate as f64 / sample_rate as f64;
+		let source_samples_per_output_sample =
+			speed * original_sample_rate as f64 / sample_rate as f64;
 
 		let start_ms = samples_to_ms(state.position, channels, original_sample_rate);
-		let end_ms = start_ms + (data.len() as f64 / channels as f64 / original_sample_rate as f64) * speed * 1000.;
+		let end_ms = start_ms
+			+ (data.len() as f64 / channels as f64 / original_sample_rate as f64) * speed * 1000.;
 
 		let new_clicks = check_metronome(start_ms, end_ms, &timing_points.read().unwrap());
 
 		for (time, click) in new_clicks {
 			let click_samples: Arc<[f32]> = metronome_samples.get_sample(click);
 
-			let start_sample = ((time - start_ms) / 1000.) / speed * sample_rate as f64 * channels as f64;
+			let start_sample =
+				((time - start_ms) / 1000.) / speed * sample_rate as f64 * channels as f64;
 
 			for i in 0..data.len() {
-				if (i as f64) >= start_sample {
-					if i < click_samples.len() {
-						data[i] += click_samples[i] * state.metronome_volume;
-					}
+				if (i as f64) >= start_sample && i < click_samples.len() {
+					data[i] += click_samples[i] * state.metronome_volume;
 				}
 			}
 
-			state.metronome_current.push((data.len() - start_sample as usize, click));
+			state
+				.metronome_current
+				.push((data.len() - start_sample as usize, click));
 		}
 
 		let metronome_volume = state.metronome_volume;
@@ -459,9 +485,9 @@ fn create_audio_data_callback(
 				ClickType::Beat => &metronome_samples.beat,
 			};
 
-			for i in 0..data.len() {
+			for sample in data.iter_mut() {
 				if *sample_pos < click_samples.len() {
-					data[i] += click_samples[*sample_pos] * metronome_volume;
+					*sample += click_samples[*sample_pos] * metronome_volume;
 					*sample_pos += 1;
 				}
 			}
@@ -474,7 +500,7 @@ fn create_audio_data_callback(
 			};
 			*pos < click_len
 		});
-		
+
 		if !state.playing {
 			return;
 		}
@@ -485,18 +511,18 @@ fn create_audio_data_callback(
 		if !has_resampler {
 			let samples_len = state.audio.samples().len();
 			let mut stop_playing = false;
-			
-			for i in 0..data.len() {
+
+			for sample in data.iter_mut() {
 				let pos = state.position as usize;
 				if pos < samples_len {
 					let sample_val = state.audio.samples()[pos];
-					data[i] += sample_val * volume;
+					*sample += sample_val * volume;
 					state.position += speed;
 				} else {
 					stop_playing = true;
 				}
 			}
-			
+
 			if stop_playing {
 				state.playing = false;
 			}
@@ -510,47 +536,61 @@ fn create_audio_data_callback(
 
 				let (input_slice_copy, nbr_input_frames_actual) = {
 					let samples = state.audio.samples();
-					let input_end = (state.input_position + nbr_input_frames * channels).min(samples.len());
+					let input_end =
+						(state.input_position + nbr_input_frames * channels).min(samples.len());
 					let nbr_input_frames_actual = (input_end - state.input_position) / channels;
-					
+
 					if nbr_input_frames_actual > 0 {
-						(samples[state.input_position..input_end].to_vec(), nbr_input_frames_actual)
+						(
+							samples[state.input_position..input_end].to_vec(),
+							nbr_input_frames_actual,
+						)
 					} else {
 						(vec![], nbr_input_frames_actual)
 					}
 				};
 
 				if nbr_input_frames_actual > 0 {
-					let input_adapter = InterleavedSlice::new(&input_slice_copy, channels, nbr_input_frames_actual).unwrap();
+					let input_adapter =
+						InterleavedSlice::new(&input_slice_copy, channels, nbr_input_frames_actual)
+							.unwrap();
 
 					let f_ratio = sample_rate as f64 / original_sample_rate as f64;
 					let effective_ratio = f_ratio / speed;
-					let est_output_frames = (nbr_input_frames_actual as f64 * effective_ratio * 1.5) as usize;
-					state.resample_buffer.resize(est_output_frames * channels, 0.0);
+					let est_output_frames =
+						(nbr_input_frames_actual as f64 * effective_ratio * 1.5) as usize;
+					state
+						.resample_buffer
+						.resize(est_output_frames * channels, 0.0);
 
-					let mut output_adapter = InterleavedSlice::new_mut(&mut state.resample_buffer, channels, est_output_frames).unwrap();
+					let mut output_adapter = InterleavedSlice::new_mut(
+						&mut state.resample_buffer,
+						channels,
+						est_output_frames,
+					)
+					.unwrap();
 
 					let mut resampler = resampler_arc.lock().unwrap();
 					match resampler.process_into_buffer(&input_adapter, &mut output_adapter, None) {
 						Ok((nbr_in_frames, nbr_out_frames)) => {
 							state.input_position += nbr_in_frames * channels;
 							state.resample_buffer.truncate(nbr_out_frames * channels);
-						}
+						},
 						Err(e) => {
 							// TODO: Replace with a proper UI error?
 							eprintln!("Resampling error occurred: {}", e);
 							state.resample_buffer.clear();
 							state.playing = false;
-						}
+						},
 					}
 				} else {
 					state.playing = false;
 				}
 			}
 
-			for i in 0..data.len() {
+			for sample in data.iter_mut() {
 				if state.resample_buffer_pos < state.resample_buffer.len() {
-					data[i] += state.resample_buffer[state.resample_buffer_pos] * volume;
+					*sample += state.resample_buffer[state.resample_buffer_pos] * volume;
 					state.resample_buffer_pos += 1;
 					state.position += source_samples_per_output_sample;
 				} else {

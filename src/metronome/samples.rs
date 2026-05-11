@@ -13,8 +13,6 @@ const METRONOME_BEAT: &[u8] = include_bytes!("../assets/metronome-tick.wav");
 pub struct MetronomeSamples {
 	pub downbeat: Arc<[f32]>,
 	pub beat: Arc<[f32]>,
-	// pub sample_rate: u32,
-	// pub channels: u16,
 }
 
 impl MetronomeSamples {
@@ -41,7 +39,7 @@ impl MetronomeSamples {
 		if original_sample_rate == target_sample_rate {
 			return samples.to_vec();
 		}
-		
+
 		let nbr_input_frames = samples.len() / 2;
 		let f_ratio = target_sample_rate as f64 / original_sample_rate as f64;
 		let mut outdata = vec![0.; 4 * (nbr_input_frames as f64 * f_ratio) as usize];
@@ -53,13 +51,13 @@ impl MetronomeSamples {
 			2,
 			2,
 			FixedSync::Both,
-		).unwrap();
-
-
+		)
+		.unwrap();
 
 		let input_adapter = InterleavedSlice::new(samples, 2, nbr_input_frames).unwrap();
 		let output_capacity = outdata.len() / 2;
-		let mut output_adapter = InterleavedSlice::new_mut(&mut outdata, 2, output_capacity).unwrap();
+		let mut output_adapter =
+			InterleavedSlice::new_mut(&mut outdata, 2, output_capacity).unwrap();
 
 		let (_, nbr_out) = resampler
 			.process_all_into_buffer(&input_adapter, &mut output_adapter, nbr_input_frames, None)
